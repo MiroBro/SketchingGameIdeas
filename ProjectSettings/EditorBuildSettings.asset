@@ -1,0 +1,46 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!1045 &1
+EditorBuildSettings:
+  m_ObjectHideFlags: 0
+  serializedVersion: 2
+  m_Scenes:
+  - enabled: 1
+    path: Assets/Scenes/SampleScene.unity
+    guid: 8c9cfa26abfee488c85f1582747f6a02
+  - enabled: 1
+    path: Assets/Scenes/GardenDortmantik.unity
+    guid: 07a86f6655dc5da4c948b66e10297947
+  - enabled: 1
+    path: Assets/Scenes/SpaceTowerWizard.unity
+    guid: f03625b7374f4ef43b829d97b60862e2
+  - enabled: 1
+    path: Assets/Scenes/UnderwaterKingdom.unity
+    guid: 52065bf9d51540c4bbc916bfc1a4ffb8
+  - enabled: 1
+    path: Assets/Scenes/MagicBooksDigseum.unity
+    guid: 86ad5f4fcb45fde4f9071c1b5b3dcb6c
+  - enabled: 1
+    path: Assets/Scenes/MagicCreatureDigseum.unity
+    guid: 5d9c1172a6621c44f8f6686b08a768b1
+  - enabled: 1
+    path: Assets/Scenes/LittleLifeTrain.unity
+    guid: 88e81f4517af7724babbf4b3ab91e51c
+  - enabled: 1
+    path: Assets/Scenes/PlantHusbandry.unity
+    guid: 096393d602873db449d2c7adeb0015ca
+  - enabled: 1
+    path: Assets/Scenes/ACD_Exploration.unity
+    guid: 9ce7f283e261ba14990237a83d174f88
+  - enabled: 1
+    path: Assets/Scenes/ACD_FusionLab.unity
+    guid: 00f364a3d34710442ba4026f4b9a70ad
+  - enabled: 1
+    path: Assets/Scenes/ACD_Zoo.unity
+    guid: 12196e42f696e8d448360c50b9f45dd6
+  - enabled: 1
+    path: Assets/Scenes/ACD_Skills.unity
+    guid: 2b530b2289bfd9a4abd0f8b5c516317f
+  m_configObjects:
+    com.unity.input.settings.actions: {fileID: -944628639613478452, guid: 2bcd2660ca9b64942af0de543d8d7100, type: 3}
+  m_UseUCBPForAssetBundles: 0
