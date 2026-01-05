@@ -9,8 +9,12 @@ namespace AdvancedCreatureDigseum
         // Currency
         public static int Gold = 100;
 
-        // Found animals: Dictionary<animalId, timesFound>
+        // Found animals: Dictionary<animalId, timesFound> - current available count
         public static Dictionary<string, int> FoundAnimals = new Dictionary<string, int>();
+
+        // Historical finds: total times each animal has ever been found (never decreases)
+        // Used for permanent hybrid value bonuses
+        public static Dictionary<string, int> HistoricalFinds = new Dictionary<string, int>();
 
         // Created hybrids
         public static List<HybridData> Hybrids = new List<HybridData>();
@@ -119,6 +123,7 @@ namespace AdvancedCreatureDigseum
         {
             Gold = 100;
             FoundAnimals.Clear();
+            HistoricalFinds.Clear();
             Hybrids.Clear();
             PlacedHybrids.Clear();
             PlacedDecorations.Clear();
@@ -147,9 +152,13 @@ namespace AdvancedCreatureDigseum
             PlayerPrefs.SetFloat("ACD_CurrentEnergy", CurrentEnergy);
             PlayerPrefs.SetInt("ACD_GameFinished", GameFinished ? 1 : 0);
 
-            // Save found animals
+            // Save found animals (current available)
             string foundAnimalsJson = DictToJson(FoundAnimals);
             PlayerPrefs.SetString("ACD_FoundAnimals", foundAnimalsJson);
+
+            // Save historical finds (total ever found)
+            string historicalJson = DictToJson(HistoricalFinds);
+            PlayerPrefs.SetString("ACD_HistoricalFinds", historicalJson);
 
             // Save unlocked biomes
             string biomesJson = SetToJson(UnlockedBiomes);
@@ -203,9 +212,22 @@ namespace AdvancedCreatureDigseum
             CurrentEnergy = PlayerPrefs.GetFloat("ACD_CurrentEnergy", 100f);
             GameFinished = PlayerPrefs.GetInt("ACD_GameFinished", 0) == 1;
 
-            // Load found animals
+            // Load found animals (current available)
             string foundAnimalsJson = PlayerPrefs.GetString("ACD_FoundAnimals", "");
             FoundAnimals = JsonToDict(foundAnimalsJson);
+
+            // Load historical finds (total ever found)
+            string historicalJson = PlayerPrefs.GetString("ACD_HistoricalFinds", "");
+            HistoricalFinds = JsonToDict(historicalJson);
+
+            // Migrate old saves: if historical is empty but we have found animals, copy them
+            if (HistoricalFinds.Count == 0 && FoundAnimals.Count > 0)
+            {
+                foreach (var kvp in FoundAnimals)
+                {
+                    HistoricalFinds[kvp.Key] = kvp.Value;
+                }
+            }
 
             // Load unlocked biomes
             string biomesJson = PlayerPrefs.GetString("ACD_UnlockedBiomes", "");
@@ -457,7 +479,8 @@ namespace AdvancedCreatureDigseum
             List<string> entries = new List<string>();
             foreach (var p in placed)
             {
-                entries.Add($"{p.DecorationType};{p.Position.x},{p.Position.y}");
+                // Format: DecorationType;x,y;Style
+                entries.Add($"{p.DecorationType};{p.Position.x},{p.Position.y};{p.Style}");
             }
             return string.Join("|", entries);
         }
@@ -482,6 +505,18 @@ namespace AdvancedCreatureDigseum
                         float.TryParse(posParts[1], out float y);
                         p.Position = new Vector2(x, y);
                     }
+
+                    // Parse style (default 0 for old saves)
+                    if (parts.Length >= 3)
+                    {
+                        int.TryParse(parts[2], out p.Style);
+                        p.Style = Mathf.Clamp(p.Style, 0, 2);
+                    }
+                    else
+                    {
+                        p.Style = 0;
+                    }
+
                     list.Add(p);
                 }
             }
@@ -595,6 +630,20 @@ namespace AdvancedCreatureDigseum
                     FoundAnimals.Remove(animalId);
                 }
             }
+        }
+
+        // Record a historical find (permanent, never decreases)
+        public static void RecordHistoricalFind(string animalId)
+        {
+            if (!HistoricalFinds.ContainsKey(animalId))
+                HistoricalFinds[animalId] = 0;
+            HistoricalFinds[animalId]++;
+        }
+
+        // Get historical find count (total times ever found)
+        public static int GetHistoricalFindCount(string animalId)
+        {
+            return HistoricalFinds.ContainsKey(animalId) ? HistoricalFinds[animalId] : 0;
         }
 
         // Check if a hybrid is available for fusion (not placed in any pasture)
@@ -735,9 +784,10 @@ namespace AdvancedCreatureDigseum
 
         public int GetTotalValue()
         {
-            // Value increases based on how many times parents were found
-            int p1Count = GameData.GetAnimalFoundCount(Parent1Id);
-            int p2Count = GameData.GetAnimalFoundCount(Parent2Id);
+            // Value increases based on HISTORICAL finds (total ever found, not current available)
+            // This means finding more of an animal permanently increases hybrid values
+            int p1Count = GameData.GetHistoricalFindCount(Parent1Id);
+            int p2Count = GameData.GetHistoricalFindCount(Parent2Id);
             float multiplier = 1f + (p1Count + p2Count) * 0.1f;
             return (int)(BaseValue * multiplier);
         }
@@ -818,5 +868,6 @@ namespace AdvancedCreatureDigseum
     {
         public string DecorationType;
         public Vector2 Position;
+        public int Style = 0; // 0-2 for different color themes
     }
 }

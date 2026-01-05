@@ -785,12 +785,18 @@ namespace AdvancedCreatureDigseum
 
             foundAnimalObjects.Add(animalObj);
 
-            // Award gold
-            int goldReward = 10 + animal.Rarity * 5;
+            // Award gold - scales with biome and rarity
+            // Later biomes give significantly more gold
+            int biomeBonus = animal.BiomeIndex * 10;  // 0g for biome 0, up to 90g for biome 9
+            int rarityBonus = animal.Rarity * 5;       // 5g for common, 15g for rare
+            int goldReward = 10 + biomeBonus + rarityBonus;
             GameData.Gold += goldReward;
 
-            int timesFound = GameData.FoundAnimals[animal.Id];
-            ShowFeedback($"Found {animal.Name}! (+{goldReward}g) [x{timesFound}]", Color.yellow);
+            // Track historical finds for hybrid value bonuses
+            GameData.RecordHistoricalFind(animal.Id);
+
+            int timesFound = GameData.GetHistoricalFindCount(animal.Id);
+            ShowFeedback($"Found {animal.Name}! (+{goldReward}g) [x{timesFound} total]", Color.yellow);
 
             // Auto-save when finding animals
             GameData.SaveGame();

@@ -17,6 +17,7 @@ namespace AdvancedCreatureDigseum
         // Placement mode
         private string selectedPlacement = "";
         private int selectedHybridIndex = -1;
+        private int selectedDecoStyle = 0; // Current decoration style (0-2)
         private GameObject placementPreview;
         private SpriteRenderer previewRenderer;
         private bool canPlaceAtCurrentPos = false;
@@ -765,10 +766,10 @@ namespace AdvancedCreatureDigseum
                 CreatePasture(placed.Position, placed.PastureType, placed);
             }
 
-            // Rebuild decorations
+            // Rebuild decorations with their styles
             foreach (var deco in GameData.PlacedDecorations)
             {
-                CreateDecoration(deco.Position, deco.DecorationType);
+                CreateDecoration(deco.Position, deco.DecorationType, deco.Style);
             }
         }
 
@@ -928,24 +929,106 @@ namespace AdvancedCreatureDigseum
             return fence;
         }
 
-        void CreateDecoration(Vector2 position, string decoType)
+        void CreateDecoration(Vector2 position, string decoType, int style = 0)
         {
             GameObject deco = new GameObject($"Deco_{decoType}");
             deco.transform.parent = zooParent.transform;
             deco.transform.position = new Vector3(position.x, position.y, 0);
 
             SpriteRenderer sr = deco.AddComponent<SpriteRenderer>();
-            sr.sprite = CreateDecorationSprite(decoType);
+            sr.sprite = CreateDecorationSprite(decoType, style);
             sr.sortingOrder = 1;
 
             placedObjects.Add(deco);
         }
 
-        Sprite CreateDecorationSprite(string type)
+        // Get decoration colors based on style
+        Color GetDecorationPrimaryColor(string type, int style)
+        {
+            // Style 0: Classic, Style 1: Ocean/Cool, Style 2: Sunset/Warm
+            Color[,] styleColors = new Color[8, 3]
+            {
+                // Fence: brown, gray-blue, red-brown
+                { new Color(0.5f, 0.35f, 0.2f), new Color(0.4f, 0.45f, 0.5f), new Color(0.55f, 0.3f, 0.2f) },
+                // Path: tan, slate, terracotta
+                { new Color(0.55f, 0.5f, 0.4f), new Color(0.45f, 0.5f, 0.55f), new Color(0.6f, 0.45f, 0.35f) },
+                // Bench: brown, dark gray, mahogany
+                { new Color(0.5f, 0.35f, 0.2f), new Color(0.35f, 0.35f, 0.4f), new Color(0.55f, 0.25f, 0.2f) },
+                // Lamp: gray post, silver, bronze
+                { new Color(0.3f, 0.3f, 0.3f), new Color(0.5f, 0.52f, 0.55f), new Color(0.55f, 0.4f, 0.25f) },
+                // Fountain: blue, teal, coral
+                { new Color(0.4f, 0.6f, 0.9f), new Color(0.3f, 0.65f, 0.7f), new Color(0.9f, 0.5f, 0.45f) },
+                // Statue: gray, blue-gray, gold
+                { new Color(0.6f, 0.6f, 0.65f), new Color(0.5f, 0.55f, 0.65f), new Color(0.75f, 0.65f, 0.4f) },
+                // Tree trunk: brown, gray, dark brown
+                { new Color(0.4f, 0.25f, 0.15f), new Color(0.35f, 0.35f, 0.35f), new Color(0.35f, 0.2f, 0.1f) },
+                // Flowers: mixed, blue/purple, red/orange
+                { new Color(1f, 0.5f, 0.5f), new Color(0.5f, 0.5f, 1f), new Color(1f, 0.5f, 0.2f) }
+            };
+
+            int typeIndex = 0;
+            switch (type)
+            {
+                case "Fence": typeIndex = 0; break;
+                case "Path": typeIndex = 1; break;
+                case "Bench": typeIndex = 2; break;
+                case "Lamp": typeIndex = 3; break;
+                case "Fountain": typeIndex = 4; break;
+                case "Statue": typeIndex = 5; break;
+                case "Tree": typeIndex = 6; break;
+                case "Flowers": typeIndex = 7; break;
+            }
+
+            return styleColors[typeIndex, Mathf.Clamp(style, 0, 2)];
+        }
+
+        Color GetDecorationSecondaryColor(string type, int style)
+        {
+            // Secondary/accent colors for each style
+            Color[,] styleColors = new Color[8, 3]
+            {
+                // Fence (same as primary)
+                { new Color(0.5f, 0.35f, 0.2f), new Color(0.4f, 0.45f, 0.5f), new Color(0.55f, 0.3f, 0.2f) },
+                // Path (same as primary)
+                { new Color(0.55f, 0.5f, 0.4f), new Color(0.45f, 0.5f, 0.55f), new Color(0.6f, 0.45f, 0.35f) },
+                // Bench legs: dark brown, dark gray, dark mahogany
+                { new Color(0.4f, 0.3f, 0.15f), new Color(0.25f, 0.25f, 0.3f), new Color(0.4f, 0.2f, 0.15f) },
+                // Lamp light: yellow, white-blue, orange
+                { new Color(1f, 0.9f, 0.5f), new Color(0.8f, 0.9f, 1f), new Color(1f, 0.7f, 0.3f) },
+                // Fountain (same as primary)
+                { new Color(0.4f, 0.6f, 0.9f), new Color(0.3f, 0.65f, 0.7f), new Color(0.9f, 0.5f, 0.45f) },
+                // Statue (same as primary)
+                { new Color(0.6f, 0.6f, 0.65f), new Color(0.5f, 0.55f, 0.65f), new Color(0.75f, 0.65f, 0.4f) },
+                // Tree leaves: green, blue-green, autumn
+                { new Color(0.2f, 0.5f, 0.2f), new Color(0.2f, 0.45f, 0.4f), new Color(0.7f, 0.4f, 0.15f) },
+                // Flowers secondary colors
+                { new Color(1f, 1f, 0.3f), new Color(0.7f, 0.3f, 0.8f), new Color(1f, 0.3f, 0.3f) }
+            };
+
+            int typeIndex = 0;
+            switch (type)
+            {
+                case "Fence": typeIndex = 0; break;
+                case "Path": typeIndex = 1; break;
+                case "Bench": typeIndex = 2; break;
+                case "Lamp": typeIndex = 3; break;
+                case "Fountain": typeIndex = 4; break;
+                case "Statue": typeIndex = 5; break;
+                case "Tree": typeIndex = 6; break;
+                case "Flowers": typeIndex = 7; break;
+            }
+
+            return styleColors[typeIndex, Mathf.Clamp(style, 0, 2)];
+        }
+
+        Sprite CreateDecorationSprite(string type, int style = 0)
         {
             int size = 24;
             Texture2D tex = new Texture2D(size, size);
             Color[] pixels = new Color[size * size];
+
+            Color primary = GetDecorationPrimaryColor(type, style);
+            Color secondary = GetDecorationSecondaryColor(type, style);
 
             for (int i = 0; i < pixels.Length; i++)
                 pixels[i] = Color.clear;
@@ -958,7 +1041,7 @@ namespace AdvancedCreatureDigseum
                         for (int y = 8; y < 16; y++)
                         {
                             if (x % 4 < 2 || y == 8 || y == 15)
-                                pixels[y * size + x] = new Color(0.5f, 0.35f, 0.2f);
+                                pixels[y * size + x] = primary;
                         }
                     }
                     break;
@@ -966,26 +1049,26 @@ namespace AdvancedCreatureDigseum
                 case "Path":
                     for (int y = 0; y < size; y++)
                         for (int x = 0; x < size; x++)
-                            pixels[y * size + x] = new Color(0.55f, 0.5f, 0.4f) * Random.Range(0.9f, 1.1f);
+                            pixels[y * size + x] = primary * Random.Range(0.9f, 1.1f);
                     break;
 
                 case "Bench":
                     for (int y = 6; y < 12; y++)
                         for (int x = 4; x < 20; x++)
-                            pixels[y * size + x] = new Color(0.5f, 0.35f, 0.2f);
+                            pixels[y * size + x] = primary;
                     for (int y = 0; y < 6; y++)
                     {
-                        pixels[y * size + 5] = new Color(0.4f, 0.3f, 0.15f);
-                        pixels[y * size + 18] = new Color(0.4f, 0.3f, 0.15f);
+                        pixels[y * size + 5] = secondary;
+                        pixels[y * size + 18] = secondary;
                     }
                     break;
 
                 case "Lamp":
                     for (int y = 0; y < 16; y++)
-                        pixels[y * size + 12] = new Color(0.3f, 0.3f, 0.3f);
+                        pixels[y * size + 12] = primary;
                     for (int y = 16; y < 22; y++)
                         for (int x = 8; x < 16; x++)
-                            pixels[y * size + x] = new Color(1f, 0.9f, 0.5f);
+                            pixels[y * size + x] = secondary;
                     break;
 
                 case "Fountain":
@@ -996,7 +1079,7 @@ namespace AdvancedCreatureDigseum
                             float dx = (x - 12) / 10f;
                             float dy = (y - 12) / 10f;
                             if (dx * dx + dy * dy < 1f)
-                                pixels[y * size + x] = new Color(0.4f, 0.6f, 0.9f);
+                                pixels[y * size + x] = primary;
                         }
                     }
                     break;
@@ -1004,16 +1087,16 @@ namespace AdvancedCreatureDigseum
                 case "Statue":
                     for (int y = 0; y < 8; y++)
                         for (int x = 8; x < 16; x++)
-                            pixels[y * size + x] = new Color(0.6f, 0.6f, 0.65f);
+                            pixels[y * size + x] = primary;
                     for (int y = 8; y < 20; y++)
                         for (int x = 10; x < 14; x++)
-                            pixels[y * size + x] = new Color(0.6f, 0.6f, 0.65f);
+                            pixels[y * size + x] = primary;
                     break;
 
                 case "Tree":
                     for (int y = 0; y < 8; y++)
                         for (int x = 10; x < 14; x++)
-                            pixels[y * size + x] = new Color(0.4f, 0.25f, 0.15f);
+                            pixels[y * size + x] = primary; // trunk
                     for (int y = 8; y < 22; y++)
                     {
                         for (int x = 0; x < size; x++)
@@ -1021,13 +1104,19 @@ namespace AdvancedCreatureDigseum
                             float dx = (x - 12) / 10f;
                             float dy = (y - 15) / 7f;
                             if (dx * dx + dy * dy < 1f)
-                                pixels[y * size + x] = new Color(0.2f, 0.5f, 0.2f) * Random.Range(0.8f, 1.2f);
+                                pixels[y * size + x] = secondary * Random.Range(0.8f, 1.2f); // leaves
                         }
                     }
                     break;
 
                 case "Flowers":
-                    Color[] flowerColors = { Color.red, Color.yellow, new Color(1f, 0.5f, 0.8f), Color.white };
+                    // Different flower color palettes per style
+                    Color[][] flowerPalettes = {
+                        new Color[] { Color.red, Color.yellow, new Color(1f, 0.5f, 0.8f), Color.white }, // Classic
+                        new Color[] { new Color(0.5f, 0.5f, 1f), new Color(0.7f, 0.3f, 0.8f), new Color(0.3f, 0.7f, 0.9f), Color.white }, // Cool
+                        new Color[] { Color.red, new Color(1f, 0.5f, 0f), new Color(1f, 0.8f, 0f), new Color(1f, 0.3f, 0.3f) } // Warm
+                    };
+                    Color[] flowerColors = flowerPalettes[Mathf.Clamp(style, 0, 2)];
                     for (int f = 0; f < 5; f++)
                     {
                         int fx = Random.Range(4, 20);
@@ -1096,6 +1185,21 @@ namespace AdvancedCreatureDigseum
                         SceneManager.LoadScene("SampleScene");
                     else
                         CancelPlacement();
+                }
+
+                // Cycle decoration style with S while placing a decoration
+                if (keyboard.sKey.wasPressedThisFrame && !string.IsNullOrEmpty(selectedPlacement))
+                {
+                    // Check if it's a decoration (not a pasture or hybrid)
+                    if (selectedPlacement != "BasicPasture" && selectedPlacement != "GrassPasture" &&
+                        selectedPlacement != "WaterPasture" && selectedPlacement != "LuxuryPasture" &&
+                        selectedPlacement != "Hybrid")
+                    {
+                        selectedDecoStyle = (selectedDecoStyle + 1) % 3;
+                        string[] styleNames = { "Classic", "Ocean", "Sunset" };
+                        ShowFeedback($"Style: {styleNames[selectedDecoStyle]}", Color.cyan);
+                        UpdatePlacementPreview(); // Refresh preview with new style
+                    }
                 }
 
                 // Placement modes (when not already placing)
@@ -1386,9 +1490,10 @@ namespace AdvancedCreatureDigseum
 
             selectedPlacement = decoType;
             selectedHybridIndex = -1;
+            selectedDecoStyle = 0; // Reset to default style when starting new placement
             CreatePreviewObject();
             int cost = GetDecorationCost(decoType);
-            ShowFeedback($"Placing {decoType} - Click to place ({cost}g), Right-click to cancel", Color.cyan);
+            ShowFeedback($"Placing {decoType} - S:Style, Click:Place ({cost}g), RightClick:Cancel", Color.cyan);
         }
 
         void CreatePreviewObject()
@@ -1442,8 +1547,8 @@ namespace AdvancedCreatureDigseum
             }
             else
             {
-                // Decoration
-                previewRenderer.sprite = CreateDecorationSprite(selectedPlacement);
+                // Decoration - use current selected style
+                previewRenderer.sprite = CreateDecorationSprite(selectedPlacement, selectedDecoStyle);
             }
         }
 
@@ -1507,10 +1612,12 @@ namespace AdvancedCreatureDigseum
                 PlacedDecoration newDeco = new PlacedDecoration
                 {
                     Position = snappedPos,
-                    DecorationType = selectedPlacement
+                    DecorationType = selectedPlacement,
+                    Style = selectedDecoStyle
                 };
                 GameData.PlacedDecorations.Add(newDeco);
-                ShowFeedback($"Placed {selectedPlacement}!", Color.green);
+                string[] styleNames = { "Classic", "Ocean", "Sunset" };
+                ShowFeedback($"Placed {selectedPlacement} ({styleNames[selectedDecoStyle]})!", Color.green);
                 RebuildZoo();
                 GameData.SaveGame();
             }
