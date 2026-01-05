@@ -1,0 +1,45 @@
+DETAILED GAME CONCEPT 1 - CREATURE DIGSEUM
+- There's a small simple game on steam called "Husbandry" and in it you make unique animal combinations/hybrids (A little like the game Spore). Please look up the game to understand it. 
+- There's also a small game called Digseum where you dig up items and place them in a museum, which via idle mechanics gives you currency/money that you can use to upgrade your skills. Please look up the game to understand it. 
+- The game I want to make is a combination of both of these games, and I want it to be the following:
+-- in scene 1: In digseum you dig on a tile map (and you have energy/how wide your dig is etc) and you have a chance to find museum items here. There are like 10 different tile-map levels (rock, ice, dirt, desert etc) where each level is harder to dig at, and you find different items in different biomes.  Instead of a digging-spot here for my game I want the tile map to be a nature-area with like "fog of war", and "digging" is you removing "fog of war" around on the map wherever you click. The 10 levels can be various biomes too (like forest, frozen tundra, mountain, space etc) And instead of finding museum items you can find Animals, such as a horse (seen from the side) or a kangaroo (seen from the side), or a fish (seen from the side) etc. etc. etc. I want 10 different levels (you decide themes), and each level should have 3 unique different animals one can find. when you replay the level you may find the same animals again, and everytime you do it increases the idle-currency their hybrids produce. 
+-- in scene 2:  So instead of museum items one digs up unique animals. In diseum the items one finds autmatically spawn in ones museum, but in my case I want a second scene where you can select 2 of the different animals you've found and and "fuse" them. This should create a visual fusion (have visual qualities from each other, so a little like genetic mixing for a unique look, if a parent has a long neck like a giraffe and the other one is a ball like a gold-fish, maybe they fuse to look like a ball-looking-animal without legs but with a long neck). This offspring can then be places in a zoo in scene 3.
+-- In scene 3: This is a magical hybrid zoo, top down 2d perspective. Here you can place out pastures and decorations and benches etc. When you place a pasture you can also place one of your HYBRID animal there. These attract wizard visitors which generate currency in an idle-like way. And this magical zoo people visit and give you money via idle mechanics. The more unique/strange mixes of animals/parts the more wizards visit and give you money. The more times you've found a base animal that is included in your hybrids the more moeny they make. Also decorations increase the idle money you make. Both placing (building) decorations and pastures costs money, but also upgrading skills. So one has multiple incentives to make lots of money,
+-- In scene 4: This is the scene where you can unlock skills and upgrade them. You can upgrade your "digging" power (reveal fog of war in our case), how strong it is, how wide and how many tiles it affects (as things get harder each level, one needs to continously update ones "digging" to effectively look for animals). One can also unlock decorations/pastures (fancier pastures, pretty paths, lamps, benches).
+-- NOTE: Once one has found all animals in all 10 levels and unlocked the final most expensive skill "Finish the game!" the game is finished.  Please balance and chose the levels and animals and money/skills in a good way to make it satisfying. I want the game to take 2-3 hours to finish (please also make a cheat so I can cheat in money/animals without playing the full 2-3 hours every time)
+-  Please make this game, call it AdvancedCreatureDigseum
+
+
+
+
+REFINEMENT:
+- Please add a "preview" of the things you're placing when one tries to build in the zoo (make it red-tinted if you cannot place it, but color it green IF you can). Then once one places them they turn into their real color. Also please make it so if one right-clikcs the mouse it cancels placing the thing.
+- Please make it so the visitors walk around the zoo (right now they're at the bottom of the screen, kinda static). In Digseum they move around.
+- In the SKILLS and Upgrades scene I can see the UI exists in the "scene" window, but it's not visible in the "Game" window because the UI seems to be "below" the visible gameview (it's as if the view is offset one gamewindow below if that makes sense).
+- When one fuses animals they should be USED UP. Right now they're still around so one can infinitely fuse them. But they should be used up!
+- Please make it so the saves persist when I shut the game off, then when I turn it back on again I want the save to automatically be loaded for this game. It should autosave.
+- In the Exploration page rather than ones energy slowly regenerating I want one to be able to "refresh" the biome and go looking for animals again (and ones energy is refreshed). So one enters the same biome type over and over to try looking for the hidden things. This is how it works in the original Digseum. 
+
+
+FURTHER REFINEMENT:
+- For some reason I cannot click on the skills upgrades. I can now see them but nothing happens when I click them with the mouse.
+- The upgrades I think are too cheap (and also the Finish the game), because I earn much more money in just a few minutes/seconds. Please balance the money like an idle/incremental game where updates get much more expensive/one needs to update/build to get this like exponential amount of money to progress throughout the game. The game should take around 2-3 hours to finish/unlock all things, please consider this as you balance the prices/amount of idle money things give.
+- When I try to build the decoration on place 1, it just switches to the Exploration scene (so I cannot place the decoration on key "1").
+- If possible could you add UI buttons for the scene changes (right now one uses z, x, tab, e). This is just to make it easier to traverse without having to remember the keys. Can you do the same for the zoo (add buttons for the decorations/pastures things to place).
+
+
+FURTHER REFINEMENT 2:
+- Please make it so the visitors don't walk over the pastures, rather they'll like walk around them so it's more realistic (but they can move everywhere else).
+- In exploration I cannot change biomes/levels. I unlock them, but when I press the buttons of "2"  it says for instance "Forest locked! PRess B to unlock(1000g)", but when I press B it says "Already unlocked!". If possible as you fix this can you do it so the locked levels button's are "Red tinted"? And once they're unlocked they get a proper color?  Can you also show their cost on the button, and have a "buy" button under each so one can click that one instead of pressing "B" or like they keyboard?
+
+FURTHER REFINEMENT 3:
+- Please make it so a pasture can have more than one hybrid in them (but make this upgradeable, so first it's just 1, then it's 2, then it's 3).
+- It seems the skills I've unlocked aren't saved (on start/restart). Please make it so it's saved which ones Ive unlocked/upgraded. Or at least the buttons when I open skills aren't showing them as "bought", but it looks like I can still use the unlocked things (like placing trees if I unlocked it before restarting.)
+- Can you add a "destroy" function in the zoo, so I can remove thing's i've placed (so if I'm in destroy mode, if I hover over objects I can destory they turn red and if I click they get destroyed).
+- Can you also add so you can from like a scrollable list chose which hybrids to place in the pasture?
+- Can you add so the upgrades has tiers in their own button? (so instead of 2 different buttons for dig power 1 and 2, it's one button and rather you click and it says like upgrade 1/10 or something depending to how many tiers it has, and it gets more expensive the more you've unlocked of it of course)
+
+FURTHER REFINEMENT 4:
+- When I'm at the zoo I can no longer see visitors? It seems they are no longer visiting or moving around?
+- The idle gold-making should always be happening (even when one is not in the zoo-scene), because the zoo is always open (you're just not there to see it). Right now if I'm in another scene the idle gold making from the zoo stops happening it seems.
+- When I upgrade the pasture I want it to change "look" to look fancier. I'd also like to be able to chose between 3 different looks on the upgrade (can be just color) so I can customize my zoo a little.
