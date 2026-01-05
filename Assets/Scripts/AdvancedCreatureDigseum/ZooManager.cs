@@ -36,6 +36,12 @@ namespace AdvancedCreatureDigseum
         private PlacedHybrid selectedPastureForCustomize;
         private List<GameObject> styleButtons = new List<GameObject>();
 
+        // Decoration customization UI
+        private GameObject decoCustomizePanel;
+        private PlacedDecoration selectedDecoForCustomize;
+        private TextMeshProUGUI decoCustomizeTitleText;
+        private List<GameObject> decoStyleButtons = new List<GameObject>();
+
         // Grid
         private int gridWidth = 16;
         private int gridHeight = 12;
@@ -47,6 +53,9 @@ namespace AdvancedCreatureDigseum
         private TextMeshProUGUI modeText;
         private TextMeshProUGUI feedbackText;
         private float feedbackTimer;
+
+        // Decoration button tracking for dynamic coloring
+        private Dictionary<string, Image> decoButtonImages = new Dictionary<string, Image>();
 
         // Visitors
         private float visitorSpawnTimer;
@@ -67,6 +76,76 @@ namespace AdvancedCreatureDigseum
             CreateZooGround();
             CreateUI();
             RebuildZoo();
+
+            // Pre-populate visitors based on zoo income/popularity
+            PrePopulateVisitors();
+        }
+
+        void PrePopulateVisitors()
+        {
+            // Calculate max visitors based on zoo income - more income = more visitors
+            int income = GameData.CalculateTotalIdleIncome();
+            // Base 2 visitors, plus 1 per 10 income, capped at 20
+            maxVisitors = Mathf.Clamp(2 + income / 10, 2, 20);
+
+            // Pre-spawn visitors (half of max) at random positions inside the zoo
+            int initialVisitors = maxVisitors / 2;
+            if (income == 0) initialVisitors = 0; // No visitors if no income
+
+            for (int i = 0; i < initialVisitors; i++)
+            {
+                SpawnVisitorAtRandomPosition();
+            }
+        }
+
+        void SpawnVisitorAtRandomPosition()
+        {
+            GameObject visitor = new GameObject("Visitor");
+            visitor.transform.parent = zooParent.transform;
+
+            // Spawn at random position within zoo bounds
+            float x = Random.Range(-5f, 5f);
+            float y = Random.Range(-4f, 4f);
+            visitor.transform.position = new Vector3(x, y, 0);
+
+            SpriteRenderer sr = visitor.AddComponent<SpriteRenderer>();
+            Texture2D tex = new Texture2D(8, 16);
+            Color[] pixels = new Color[8 * 16];
+
+            Color bodyColor = new Color(
+                Random.Range(0.3f, 0.8f),
+                Random.Range(0.3f, 0.8f),
+                Random.Range(0.3f, 0.8f)
+            );
+            Color headColor = new Color(0.9f, 0.75f, 0.6f);
+
+            for (int py = 0; py < 16; py++)
+            {
+                for (int px = 0; px < 8; px++)
+                {
+                    if (py < 10)
+                    {
+                        if (px >= 2 && px < 6)
+                            pixels[py * 8 + px] = bodyColor;
+                    }
+                    else if (py < 14)
+                    {
+                        if (px >= 2 && px < 6)
+                            pixels[py * 8 + px] = headColor;
+                    }
+                }
+            }
+
+            tex.SetPixels(pixels);
+            tex.Apply();
+            tex.filterMode = FilterMode.Point;
+            sr.sprite = Sprite.Create(tex, new Rect(0, 0, 8, 16), new Vector2(0.5f, 0f), 16);
+            sr.sortingOrder = 5;
+
+            VisitorBehavior behavior = visitor.AddComponent<VisitorBehavior>();
+            behavior.Initialize(GameData.PlacedHybrids);
+
+            visitorObjects.Add(visitor);
         }
 
         void CreateZooGround()
@@ -203,6 +282,9 @@ namespace AdvancedCreatureDigseum
             // Create pasture customization panel (hidden by default)
             CreatePastureCustomizePanel(canvasObj.transform);
 
+            // Create decoration customization panel (hidden by default)
+            CreateDecoCustomizePanel(canvasObj.transform);
+
             // Feedback
             feedbackText = CreateText(canvasObj.transform, Vector2.zero, "");
             RectTransform fbRect = feedbackText.GetComponent<RectTransform>();
@@ -327,6 +409,9 @@ namespace AdvancedCreatureDigseum
 
             Image img = btnObj.AddComponent<Image>();
             img.color = new Color(0.35f, 0.3f, 0.25f);
+
+            // Store reference for dynamic coloring
+            decoButtonImages[decoType] = img;
 
             Button btn = btnObj.AddComponent<Button>();
             string type = decoType;
@@ -749,6 +834,208 @@ namespace AdvancedCreatureDigseum
             RebuildZoo();
             GameData.SaveGame();
             ShowFeedback($"Pasture upgraded to capacity {selectedPastureForCustomize.Capacity}!", Color.green);
+        }
+
+        // ===== DECORATION CUSTOMIZATION =====
+        void CreateDecoCustomizePanel(Transform parent)
+        {
+            decoCustomizePanel = new GameObject("DecoCustomizePanel");
+            decoCustomizePanel.transform.SetParent(parent);
+
+            RectTransform panelRect = decoCustomizePanel.AddComponent<RectTransform>();
+            panelRect.anchorMin = new Vector2(0.5f, 0.5f);
+            panelRect.anchorMax = new Vector2(0.5f, 0.5f);
+            panelRect.pivot = new Vector2(0.5f, 0.5f);
+            panelRect.anchoredPosition = Vector2.zero;
+            panelRect.sizeDelta = new Vector2(300, 200);
+            panelRect.localScale = Vector3.one;
+
+            Image bgImg = decoCustomizePanel.AddComponent<Image>();
+            bgImg.color = new Color(0.15f, 0.15f, 0.2f, 0.95f);
+
+            // Title
+            GameObject titleObj = new GameObject("Title");
+            titleObj.transform.SetParent(decoCustomizePanel.transform);
+            RectTransform titleRect = titleObj.AddComponent<RectTransform>();
+            titleRect.anchorMin = new Vector2(0, 1);
+            titleRect.anchorMax = new Vector2(1, 1);
+            titleRect.pivot = new Vector2(0.5f, 1);
+            titleRect.anchoredPosition = new Vector2(0, -10);
+            titleRect.sizeDelta = new Vector2(0, 35);
+            titleRect.localScale = Vector3.one;
+
+            decoCustomizeTitleText = titleObj.AddComponent<TextMeshProUGUI>();
+            decoCustomizeTitleText.text = "Customize Decoration";
+            decoCustomizeTitleText.fontSize = 20;
+            decoCustomizeTitleText.color = Color.white;
+            decoCustomizeTitleText.alignment = TextAlignmentOptions.Center;
+
+            // Style label
+            GameObject styleLabelObj = new GameObject("StyleLabel");
+            styleLabelObj.transform.SetParent(decoCustomizePanel.transform);
+            RectTransform slRect = styleLabelObj.AddComponent<RectTransform>();
+            slRect.anchorMin = new Vector2(0, 1);
+            slRect.anchorMax = new Vector2(1, 1);
+            slRect.pivot = new Vector2(0.5f, 1);
+            slRect.anchoredPosition = new Vector2(0, -50);
+            slRect.sizeDelta = new Vector2(0, 25);
+            slRect.localScale = Vector3.one;
+
+            TextMeshProUGUI slText = styleLabelObj.AddComponent<TextMeshProUGUI>();
+            slText.text = "Select Style:";
+            slText.fontSize = 16;
+            slText.color = Color.white;
+            slText.alignment = TextAlignmentOptions.Center;
+
+            // Style buttons - 3 styles in a row
+            string[] styleNames = { "Classic", "Ocean", "Sunset" };
+            Color[] styleColors = {
+                new Color(0.5f, 0.4f, 0.3f),
+                new Color(0.3f, 0.45f, 0.5f),
+                new Color(0.55f, 0.35f, 0.25f)
+            };
+
+            for (int i = 0; i < 3; i++)
+            {
+                int styleIndex = i;
+                GameObject styleBtnObj = new GameObject($"DecoStyleBtn_{i}");
+                styleBtnObj.transform.SetParent(decoCustomizePanel.transform);
+
+                RectTransform sRect = styleBtnObj.AddComponent<RectTransform>();
+                sRect.anchorMin = new Vector2(0.5f, 0.5f);
+                sRect.anchorMax = new Vector2(0.5f, 0.5f);
+                sRect.pivot = new Vector2(0.5f, 0.5f);
+                sRect.anchoredPosition = new Vector2(-80 + i * 80, 0);
+                sRect.sizeDelta = new Vector2(70, 50);
+                sRect.localScale = Vector3.one;
+
+                Image sImg = styleBtnObj.AddComponent<Image>();
+                sImg.color = styleColors[i];
+
+                Button sBtn = styleBtnObj.AddComponent<Button>();
+                sBtn.onClick.AddListener(() => SetDecoStyle(styleIndex));
+
+                GameObject sTextObj = new GameObject("Text");
+                sTextObj.transform.SetParent(styleBtnObj.transform);
+                RectTransform stRect = sTextObj.AddComponent<RectTransform>();
+                stRect.anchorMin = Vector2.zero;
+                stRect.anchorMax = Vector2.one;
+                stRect.offsetMin = Vector2.zero;
+                stRect.offsetMax = Vector2.zero;
+                stRect.localScale = Vector3.one;
+
+                TextMeshProUGUI stText = sTextObj.AddComponent<TextMeshProUGUI>();
+                stText.text = styleNames[i];
+                stText.fontSize = 12;
+                stText.color = Color.white;
+                stText.alignment = TextAlignmentOptions.Center;
+                stText.raycastTarget = false;
+
+                decoStyleButtons.Add(styleBtnObj);
+            }
+
+            // Close button
+            GameObject closeObj = new GameObject("CloseBtn");
+            closeObj.transform.SetParent(decoCustomizePanel.transform);
+            RectTransform closeRect = closeObj.AddComponent<RectTransform>();
+            closeRect.anchorMin = new Vector2(1, 1);
+            closeRect.anchorMax = new Vector2(1, 1);
+            closeRect.pivot = new Vector2(1, 1);
+            closeRect.anchoredPosition = new Vector2(-5, -5);
+            closeRect.sizeDelta = new Vector2(30, 30);
+            closeRect.localScale = Vector3.one;
+
+            Image closeImg = closeObj.AddComponent<Image>();
+            closeImg.color = new Color(0.5f, 0.3f, 0.3f);
+
+            Button closeBtn = closeObj.AddComponent<Button>();
+            closeBtn.onClick.AddListener(() => CloseDecoCustomize());
+
+            GameObject closeTextObj = new GameObject("Text");
+            closeTextObj.transform.SetParent(closeObj.transform);
+            RectTransform ctRect = closeTextObj.AddComponent<RectTransform>();
+            ctRect.anchorMin = Vector2.zero;
+            ctRect.anchorMax = Vector2.one;
+            ctRect.offsetMin = Vector2.zero;
+            ctRect.offsetMax = Vector2.zero;
+            ctRect.localScale = Vector3.one;
+
+            TextMeshProUGUI ctText = closeTextObj.AddComponent<TextMeshProUGUI>();
+            ctText.text = "X";
+            ctText.fontSize = 18;
+            ctText.color = Color.white;
+            ctText.alignment = TextAlignmentOptions.Center;
+            ctText.raycastTarget = false;
+
+            decoCustomizePanel.SetActive(false);
+        }
+
+        void OpenDecoCustomize(PlacedDecoration deco)
+        {
+            selectedDecoForCustomize = deco;
+            if (decoCustomizeTitleText != null)
+            {
+                decoCustomizeTitleText.text = $"Customize {deco.DecorationType}";
+            }
+            UpdateDecoCustomizeUI();
+            decoCustomizePanel.SetActive(true);
+        }
+
+        void CloseDecoCustomize()
+        {
+            decoCustomizePanel.SetActive(false);
+            selectedDecoForCustomize = null;
+        }
+
+        void UpdateDecoCustomizeUI()
+        {
+            if (selectedDecoForCustomize == null) return;
+
+            Color[] styleColors = {
+                new Color(0.5f, 0.4f, 0.3f),
+                new Color(0.3f, 0.45f, 0.5f),
+                new Color(0.55f, 0.35f, 0.25f)
+            };
+
+            for (int i = 0; i < decoStyleButtons.Count; i++)
+            {
+                var img = decoStyleButtons[i].GetComponent<Image>();
+                if (i == selectedDecoForCustomize.Style)
+                {
+                    img.color = styleColors[i] * 1.4f;
+                }
+                else
+                {
+                    img.color = styleColors[i];
+                }
+            }
+        }
+
+        void SetDecoStyle(int styleIndex)
+        {
+            if (selectedDecoForCustomize == null) return;
+            selectedDecoForCustomize.Style = styleIndex;
+            UpdateDecoCustomizeUI();
+            RebuildZoo();
+            GameData.SaveGame();
+            string[] styleNames = { "Classic", "Ocean", "Sunset" };
+            ShowFeedback($"Style: {styleNames[styleIndex]}!", Color.green);
+        }
+
+        void TryCustomizeDecoration(Vector2 position)
+        {
+            float snappedX = Mathf.Round(position.x / cellSize) * cellSize;
+            float snappedY = Mathf.Round(position.y / cellSize) * cellSize;
+            Vector2 snappedPos = new Vector2(snappedX, snappedY);
+
+            foreach (var deco in GameData.PlacedDecorations)
+            {
+                if (Vector2.Distance(deco.Position, snappedPos) < cellSize)
+                {
+                    OpenDecoCustomize(deco);
+                    return;
+                }
+            }
         }
 
         void RebuildZoo()
@@ -1247,8 +1534,11 @@ namespace AdvancedCreatureDigseum
                     }
                     else
                     {
-                        // Check if clicking on a pasture for upgrade
-                        TryUpgradePasture(clickPos);
+                        // Check if clicking on a pasture for upgrade, or decoration for customize
+                        if (!TryUpgradePasture(clickPos))
+                        {
+                            TryCustomizeDecoration(clickPos);
+                        }
                     }
                 }
             }
@@ -1320,7 +1610,7 @@ namespace AdvancedCreatureDigseum
             ShowFeedback("Nothing to destroy here", Color.gray);
         }
 
-        void TryUpgradePasture(Vector2 position)
+        bool TryUpgradePasture(Vector2 position)
         {
             float snappedX = Mathf.Round(position.x / cellSize) * cellSize;
             float snappedY = Mathf.Round(position.y / cellSize) * cellSize;
@@ -1332,9 +1622,10 @@ namespace AdvancedCreatureDigseum
                 {
                     // Open customization panel instead of directly upgrading
                     OpenPastureCustomize(placed);
-                    return;
+                    return true;
                 }
             }
+            return false;
         }
 
         void StartPasturePlacement()
@@ -1769,6 +2060,10 @@ namespace AdvancedCreatureDigseum
 
             if (numHybrids == 0) return;
 
+            // Dynamically update max visitors based on income
+            int income = GameData.CalculateTotalIdleIncome();
+            maxVisitors = Mathf.Clamp(2 + income / 10, 2, 20);
+
             visitorSpawnTimer += Time.deltaTime;
             if (visitorSpawnTimer >= 2f && visitorObjects.Count < maxVisitors)
             {
@@ -1880,6 +2175,42 @@ namespace AdvancedCreatureDigseum
                 else
                 {
                     modeText.text = $"Mode: View (Click pasture to customize)\nHybrids placed: {CountPlacedHybrids()}";
+                }
+            }
+
+            UpdateDecoButtonColors();
+        }
+
+        void UpdateDecoButtonColors()
+        {
+            // Green: unlocked and can afford
+            // Gray: not unlocked
+            // Red: unlocked but can't afford
+            Color greenColor = new Color(0.25f, 0.5f, 0.25f);
+            Color grayColor = new Color(0.35f, 0.35f, 0.35f);
+            Color redColor = new Color(0.5f, 0.25f, 0.25f);
+
+            foreach (var kvp in decoButtonImages)
+            {
+                string decoType = kvp.Key;
+                Image img = kvp.Value;
+                if (img == null) continue;
+
+                bool isUnlocked = GameData.UnlockedDecorations.Contains(decoType);
+                int cost = GetDecorationCost(decoType);
+                bool canAfford = GameData.Gold >= cost;
+
+                if (!isUnlocked)
+                {
+                    img.color = grayColor;
+                }
+                else if (!canAfford)
+                {
+                    img.color = redColor;
+                }
+                else
+                {
+                    img.color = greenColor;
                 }
             }
         }

@@ -33,6 +33,12 @@ namespace AdvancedCreatureDigseum
         private TextMeshProUGUI foundText;
         private TextMeshProUGUI feedbackText;
         private float feedbackTimer;
+        private Transform canvasTransform;
+
+        // Refresh panel (shows when out of energy)
+        private GameObject refreshPanel;
+        private TextMeshProUGUI refreshSummaryText;
+        private bool refreshPanelVisible = false;
 
         // Fog visual
         private GameObject fogParent;
@@ -62,6 +68,7 @@ namespace AdvancedCreatureDigseum
         void CreateUI()
         {
             GameObject canvasObj = new GameObject("Canvas");
+            canvasTransform = canvasObj.transform;
             Canvas canvas = canvasObj.AddComponent<Canvas>();
             canvas.renderMode = RenderMode.ScreenSpaceOverlay;
             CanvasScaler scaler = canvasObj.AddComponent<CanvasScaler>();
@@ -141,6 +148,164 @@ namespace AdvancedCreatureDigseum
             fbRect.sizeDelta = new Vector2(600, 100);
             feedbackText.alignment = TextAlignmentOptions.Center;
             feedbackText.fontSize = 32;
+
+            // Create refresh panel (hidden by default)
+            CreateRefreshPanel(canvasObj.transform);
+        }
+
+        void CreateRefreshPanel(Transform parent)
+        {
+            // Panel background
+            refreshPanel = new GameObject("RefreshPanel");
+            refreshPanel.transform.SetParent(parent);
+
+            RectTransform panelRect = refreshPanel.AddComponent<RectTransform>();
+            panelRect.anchorMin = new Vector2(0.5f, 0.5f);
+            panelRect.anchorMax = new Vector2(0.5f, 0.5f);
+            panelRect.pivot = new Vector2(0.5f, 0.5f);
+            panelRect.anchoredPosition = Vector2.zero;
+            panelRect.sizeDelta = new Vector2(450, 350);
+            panelRect.localScale = Vector3.one;
+
+            Image panelImg = refreshPanel.AddComponent<Image>();
+            panelImg.color = new Color(0.15f, 0.12f, 0.2f, 0.95f);
+
+            // Title
+            TextMeshProUGUI titleText = CreatePanelText(refreshPanel.transform, new Vector2(0, 140), "Energy Depleted!");
+            titleText.fontSize = 28;
+            titleText.color = new Color(1f, 0.8f, 0.3f);
+            titleText.alignment = TextAlignmentOptions.Center;
+            RectTransform titleRect = titleText.GetComponent<RectTransform>();
+            titleRect.anchorMin = new Vector2(0.5f, 0.5f);
+            titleRect.anchorMax = new Vector2(0.5f, 0.5f);
+            titleRect.pivot = new Vector2(0.5f, 0.5f);
+            titleRect.sizeDelta = new Vector2(400, 40);
+
+            // Summary text
+            refreshSummaryText = CreatePanelText(refreshPanel.transform, new Vector2(0, 20), "");
+            refreshSummaryText.fontSize = 16;
+            refreshSummaryText.alignment = TextAlignmentOptions.Center;
+            RectTransform summaryRect = refreshSummaryText.GetComponent<RectTransform>();
+            summaryRect.anchorMin = new Vector2(0.5f, 0.5f);
+            summaryRect.anchorMax = new Vector2(0.5f, 0.5f);
+            summaryRect.pivot = new Vector2(0.5f, 0.5f);
+            summaryRect.sizeDelta = new Vector2(400, 180);
+
+            // Refresh button
+            GameObject btnObj = new GameObject("RefreshButton");
+            btnObj.transform.SetParent(refreshPanel.transform);
+
+            RectTransform btnRect = btnObj.AddComponent<RectTransform>();
+            btnRect.anchorMin = new Vector2(0.5f, 0.5f);
+            btnRect.anchorMax = new Vector2(0.5f, 0.5f);
+            btnRect.pivot = new Vector2(0.5f, 0.5f);
+            btnRect.anchoredPosition = new Vector2(0, -130);
+            btnRect.sizeDelta = new Vector2(200, 50);
+            btnRect.localScale = Vector3.one;
+
+            Image btnImg = btnObj.AddComponent<Image>();
+            btnImg.color = new Color(0.3f, 0.6f, 0.3f);
+
+            Button btn = btnObj.AddComponent<Button>();
+            btn.onClick.AddListener(() => OnRefreshButtonClicked());
+
+            GameObject btnTextObj = new GameObject("Text");
+            btnTextObj.transform.SetParent(btnObj.transform);
+            RectTransform btnTextRect = btnTextObj.AddComponent<RectTransform>();
+            btnTextRect.anchorMin = Vector2.zero;
+            btnTextRect.anchorMax = Vector2.one;
+            btnTextRect.offsetMin = Vector2.zero;
+            btnTextRect.offsetMax = Vector2.zero;
+            btnTextRect.localScale = Vector3.one;
+
+            TextMeshProUGUI btnText = btnTextObj.AddComponent<TextMeshProUGUI>();
+            btnText.text = "Refresh Biome";
+            btnText.fontSize = 22;
+            btnText.color = Color.white;
+            btnText.alignment = TextAlignmentOptions.Center;
+            btnText.raycastTarget = false;
+
+            // Hide panel initially
+            refreshPanel.SetActive(false);
+        }
+
+        TextMeshProUGUI CreatePanelText(Transform parent, Vector2 position, string text)
+        {
+            GameObject textObj = new GameObject("PanelText");
+            textObj.transform.SetParent(parent);
+
+            RectTransform rect = textObj.AddComponent<RectTransform>();
+            rect.anchoredPosition = position;
+            rect.localScale = Vector3.one;
+
+            TextMeshProUGUI tmp = textObj.AddComponent<TextMeshProUGUI>();
+            tmp.text = text;
+            tmp.fontSize = 18;
+            tmp.color = Color.white;
+
+            return tmp;
+        }
+
+        void OnRefreshButtonClicked()
+        {
+            HideRefreshPanel();
+            RefreshBiome();
+        }
+
+        void ShowRefreshPanel()
+        {
+            if (refreshPanel == null || refreshPanelVisible) return;
+
+            refreshPanelVisible = true;
+            refreshPanel.SetActive(true);
+
+            // Build summary of animals found this run
+            string summary = "";
+
+            if (animalsFoundThisRun.Count == 0)
+            {
+                summary = "No animals found this run.\n\nKeep exploring to discover creatures!";
+            }
+            else
+            {
+                summary = $"<color=#8f8>Animals Found This Run: {animalsFoundThisRun.Count}</color>\n\n";
+
+                // Count unique animals and their bonuses
+                Dictionary<string, int> foundCounts = new Dictionary<string, int>();
+                foreach (string animalId in animalsFoundThisRun)
+                {
+                    if (!foundCounts.ContainsKey(animalId))
+                        foundCounts[animalId] = 0;
+                    foundCounts[animalId]++;
+                }
+
+                foreach (var kvp in foundCounts)
+                {
+                    AnimalData animal = AnimalDatabase.GetAnimal(kvp.Key);
+                    if (animal != null)
+                    {
+                        int historicalCount = GameData.GetHistoricalFindCount(kvp.Key);
+                        int bonusPercent = historicalCount * 10;
+                        summary += $"{animal.Name} x{kvp.Value}";
+                        if (historicalCount > 1)
+                        {
+                            summary += $" <color=#ff8>(+{bonusPercent}% hybrid bonus)</color>";
+                        }
+                        summary += "\n";
+                    }
+                }
+
+                summary += $"\n<color=#aaf>Historical finds boost hybrid values!</color>";
+            }
+
+            refreshSummaryText.text = summary;
+        }
+
+        void HideRefreshPanel()
+        {
+            if (refreshPanel == null) return;
+            refreshPanelVisible = false;
+            refreshPanel.SetActive(false);
         }
 
         TextMeshProUGUI CreateText(Transform parent, Vector2 position, string text)
@@ -658,7 +823,8 @@ namespace AdvancedCreatureDigseum
             int energyCost = 5 + currentBiome.Difficulty * 2;
             if (GameData.CurrentEnergy < energyCost)
             {
-                ShowFeedback("Not enough energy! Press R to refresh biome.", Color.red);
+                // Show refresh panel with summary instead of just text
+                ShowRefreshPanel();
                 return;
             }
 
