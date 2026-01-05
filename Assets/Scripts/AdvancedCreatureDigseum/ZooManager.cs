@@ -888,11 +888,11 @@ namespace AdvancedCreatureDigseum
             slText.alignment = TextAlignmentOptions.Center;
 
             // Style buttons - 3 styles in a row
-            string[] styleNames = { "Classic", "Ocean", "Sunset" };
+            string[] styleNames = { "Cute", "Goth", "Dark Academia" };
             Color[] styleColors = {
-                new Color(0.5f, 0.4f, 0.3f),
-                new Color(0.3f, 0.45f, 0.5f),
-                new Color(0.55f, 0.35f, 0.25f)
+                new Color(0.9f, 0.6f, 0.7f),   // Cute - soft pink
+                new Color(0.25f, 0.15f, 0.3f), // Goth - dark purple
+                new Color(0.4f, 0.3f, 0.2f)    // Dark Academia - warm brown
             };
 
             for (int i = 0; i < 3; i++)
@@ -992,9 +992,9 @@ namespace AdvancedCreatureDigseum
             if (selectedDecoForCustomize == null) return;
 
             Color[] styleColors = {
-                new Color(0.5f, 0.4f, 0.3f),
-                new Color(0.3f, 0.45f, 0.5f),
-                new Color(0.55f, 0.35f, 0.25f)
+                new Color(0.9f, 0.6f, 0.7f),   // Cute - soft pink
+                new Color(0.25f, 0.15f, 0.3f), // Goth - dark purple
+                new Color(0.4f, 0.3f, 0.2f)    // Dark Academia - warm brown
             };
 
             for (int i = 0; i < decoStyleButtons.Count; i++)
@@ -1018,7 +1018,7 @@ namespace AdvancedCreatureDigseum
             UpdateDecoCustomizeUI();
             RebuildZoo();
             GameData.SaveGame();
-            string[] styleNames = { "Classic", "Ocean", "Sunset" };
+            string[] styleNames = { "Cute", "Goth", "Dark Academia" };
             ShowFeedback($"Style: {styleNames[styleIndex]}!", Color.green);
         }
 
@@ -1232,25 +1232,25 @@ namespace AdvancedCreatureDigseum
         // Get decoration colors based on style
         Color GetDecorationPrimaryColor(string type, int style)
         {
-            // Style 0: Classic, Style 1: Ocean/Cool, Style 2: Sunset/Warm
+            // Style 0: Cute (soft pinks, pastels), Style 1: Goth (dark purples, blacks), Style 2: Dark Academia (warm browns, vintage)
             Color[,] styleColors = new Color[8, 3]
             {
-                // Fence: brown, gray-blue, red-brown
-                { new Color(0.5f, 0.35f, 0.2f), new Color(0.4f, 0.45f, 0.5f), new Color(0.55f, 0.3f, 0.2f) },
-                // Path: tan, slate, terracotta
-                { new Color(0.55f, 0.5f, 0.4f), new Color(0.45f, 0.5f, 0.55f), new Color(0.6f, 0.45f, 0.35f) },
-                // Bench: brown, dark gray, mahogany
-                { new Color(0.5f, 0.35f, 0.2f), new Color(0.35f, 0.35f, 0.4f), new Color(0.55f, 0.25f, 0.2f) },
-                // Lamp: gray post, silver, bronze
-                { new Color(0.3f, 0.3f, 0.3f), new Color(0.5f, 0.52f, 0.55f), new Color(0.55f, 0.4f, 0.25f) },
-                // Fountain: blue, teal, coral
-                { new Color(0.4f, 0.6f, 0.9f), new Color(0.3f, 0.65f, 0.7f), new Color(0.9f, 0.5f, 0.45f) },
-                // Statue: gray, blue-gray, gold
-                { new Color(0.6f, 0.6f, 0.65f), new Color(0.5f, 0.55f, 0.65f), new Color(0.75f, 0.65f, 0.4f) },
-                // Tree trunk: brown, gray, dark brown
-                { new Color(0.4f, 0.25f, 0.15f), new Color(0.35f, 0.35f, 0.35f), new Color(0.35f, 0.2f, 0.1f) },
-                // Flowers: mixed, blue/purple, red/orange
-                { new Color(1f, 0.5f, 0.5f), new Color(0.5f, 0.5f, 1f), new Color(1f, 0.5f, 0.2f) }
+                // Fence: white/pink, dark iron, aged wood
+                { new Color(0.95f, 0.85f, 0.9f), new Color(0.15f, 0.12f, 0.18f), new Color(0.45f, 0.35f, 0.25f) },
+                // Path: pastel stone, dark slate, aged brick
+                { new Color(0.9f, 0.85f, 0.88f), new Color(0.2f, 0.18f, 0.22f), new Color(0.55f, 0.4f, 0.3f) },
+                // Bench: light pink, black iron, antique wood
+                { new Color(0.95f, 0.75f, 0.85f), new Color(0.12f, 0.1f, 0.15f), new Color(0.5f, 0.35f, 0.2f) },
+                // Lamp: rose gold, wrought iron, brass
+                { new Color(0.9f, 0.7f, 0.75f), new Color(0.1f, 0.08f, 0.12f), new Color(0.6f, 0.45f, 0.25f) },
+                // Fountain: soft blue, dark purple, aged bronze
+                { new Color(0.8f, 0.85f, 0.95f), new Color(0.2f, 0.1f, 0.25f), new Color(0.5f, 0.4f, 0.3f) },
+                // Statue: white marble, obsidian, bronze
+                { new Color(0.95f, 0.92f, 0.95f), new Color(0.15f, 0.1f, 0.2f), new Color(0.55f, 0.45f, 0.3f) },
+                // Tree trunk: light pink, dark gray, warm brown
+                { new Color(0.85f, 0.7f, 0.75f), new Color(0.18f, 0.15f, 0.2f), new Color(0.4f, 0.28f, 0.18f) },
+                // Flowers: pink, deep purple, burgundy
+                { new Color(1f, 0.7f, 0.85f), new Color(0.4f, 0.15f, 0.35f), new Color(0.6f, 0.25f, 0.2f) }
             };
 
             int typeIndex = 0;
@@ -1271,25 +1271,25 @@ namespace AdvancedCreatureDigseum
 
         Color GetDecorationSecondaryColor(string type, int style)
         {
-            // Secondary/accent colors for each style
+            // Secondary/accent colors for each style: Cute, Goth, Dark Academia
             Color[,] styleColors = new Color[8, 3]
             {
                 // Fence (same as primary)
-                { new Color(0.5f, 0.35f, 0.2f), new Color(0.4f, 0.45f, 0.5f), new Color(0.55f, 0.3f, 0.2f) },
+                { new Color(0.95f, 0.85f, 0.9f), new Color(0.15f, 0.12f, 0.18f), new Color(0.45f, 0.35f, 0.25f) },
                 // Path (same as primary)
-                { new Color(0.55f, 0.5f, 0.4f), new Color(0.45f, 0.5f, 0.55f), new Color(0.6f, 0.45f, 0.35f) },
-                // Bench legs: dark brown, dark gray, dark mahogany
-                { new Color(0.4f, 0.3f, 0.15f), new Color(0.25f, 0.25f, 0.3f), new Color(0.4f, 0.2f, 0.15f) },
-                // Lamp light: yellow, white-blue, orange
-                { new Color(1f, 0.9f, 0.5f), new Color(0.8f, 0.9f, 1f), new Color(1f, 0.7f, 0.3f) },
-                // Fountain (same as primary)
-                { new Color(0.4f, 0.6f, 0.9f), new Color(0.3f, 0.65f, 0.7f), new Color(0.9f, 0.5f, 0.45f) },
-                // Statue (same as primary)
-                { new Color(0.6f, 0.6f, 0.65f), new Color(0.5f, 0.55f, 0.65f), new Color(0.75f, 0.65f, 0.4f) },
-                // Tree leaves: green, blue-green, autumn
-                { new Color(0.2f, 0.5f, 0.2f), new Color(0.2f, 0.45f, 0.4f), new Color(0.7f, 0.4f, 0.15f) },
-                // Flowers secondary colors
-                { new Color(1f, 1f, 0.3f), new Color(0.7f, 0.3f, 0.8f), new Color(1f, 0.3f, 0.3f) }
+                { new Color(0.9f, 0.85f, 0.88f), new Color(0.2f, 0.18f, 0.22f), new Color(0.55f, 0.4f, 0.3f) },
+                // Bench legs: light lavender, dark purple, dark wood
+                { new Color(0.85f, 0.75f, 0.9f), new Color(0.08f, 0.05f, 0.1f), new Color(0.35f, 0.25f, 0.15f) },
+                // Lamp light: soft pink glow, eerie green, warm amber
+                { new Color(1f, 0.85f, 0.9f), new Color(0.6f, 0.9f, 0.6f), new Color(1f, 0.8f, 0.4f) },
+                // Fountain water: soft pink, dark purple, aged green
+                { new Color(0.95f, 0.8f, 0.9f), new Color(0.3f, 0.15f, 0.35f), new Color(0.4f, 0.45f, 0.35f) },
+                // Statue accent: pink tint, purple glow, patina
+                { new Color(0.95f, 0.85f, 0.9f), new Color(0.25f, 0.15f, 0.3f), new Color(0.45f, 0.5f, 0.4f) },
+                // Tree leaves: pastel pink, dark purple, autumn orange
+                { new Color(1f, 0.75f, 0.85f), new Color(0.25f, 0.1f, 0.3f), new Color(0.7f, 0.45f, 0.2f) },
+                // Flowers secondary: lavender, black, cream
+                { new Color(0.85f, 0.75f, 1f), new Color(0.1f, 0.08f, 0.12f), new Color(0.95f, 0.9f, 0.8f) }
             };
 
             int typeIndex = 0;
@@ -1483,7 +1483,7 @@ namespace AdvancedCreatureDigseum
                         selectedPlacement != "Hybrid")
                     {
                         selectedDecoStyle = (selectedDecoStyle + 1) % 3;
-                        string[] styleNames = { "Classic", "Ocean", "Sunset" };
+                        string[] styleNames = { "Cute", "Goth", "Dark Academia" };
                         ShowFeedback($"Style: {styleNames[selectedDecoStyle]}", Color.cyan);
                         UpdatePlacementPreview(); // Refresh preview with new style
                     }
@@ -1514,6 +1514,14 @@ namespace AdvancedCreatureDigseum
                 // Left-click handling
                 if (mouse.leftButton.wasPressedThisFrame)
                 {
+                    // Block world clicks if any UI panel is open
+                    bool uiPanelOpen = (pastureCustomizePanel != null && pastureCustomizePanel.activeSelf) ||
+                                       (decoCustomizePanel != null && decoCustomizePanel.activeSelf);
+                    if (uiPanelOpen)
+                    {
+                        return; // Don't process world clicks when UI is open
+                    }
+
                     Vector3 worldPos = mainCamera.ScreenToWorldPoint(mouse.position.ReadValue());
                     Vector2 clickPos = new Vector2(worldPos.x, worldPos.y);
 
@@ -1907,7 +1915,7 @@ namespace AdvancedCreatureDigseum
                     Style = selectedDecoStyle
                 };
                 GameData.PlacedDecorations.Add(newDeco);
-                string[] styleNames = { "Classic", "Ocean", "Sunset" };
+                string[] styleNames = { "Cute", "Goth", "Dark Academia" };
                 ShowFeedback($"Placed {selectedPlacement} ({styleNames[selectedDecoStyle]})!", Color.green);
                 RebuildZoo();
                 GameData.SaveGame();
