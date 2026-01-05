@@ -1,6 +1,7 @@
 using UnityEngine;
 using UnityEngine.InputSystem;
 using UnityEngine.SceneManagement;
+using UnityEngine.EventSystems;
 using TMPro;
 using UnityEngine.UI;
 using System.Collections.Generic;
@@ -1514,12 +1515,10 @@ namespace AdvancedCreatureDigseum
                 // Left-click handling
                 if (mouse.leftButton.wasPressedThisFrame)
                 {
-                    // Block world clicks if any UI panel is open
-                    bool uiPanelOpen = (pastureCustomizePanel != null && pastureCustomizePanel.activeSelf) ||
-                                       (decoCustomizePanel != null && decoCustomizePanel.activeSelf);
-                    if (uiPanelOpen)
+                    // Block world clicks if pointer is over any UI element (buttons, panels, etc.)
+                    if (EventSystem.current != null && EventSystem.current.IsPointerOverGameObject())
                     {
-                        return; // Don't process world clicks when UI is open
+                        return; // Don't process world clicks when clicking on UI
                     }
 
                     Vector3 worldPos = mainCamera.ScreenToWorldPoint(mouse.position.ReadValue());

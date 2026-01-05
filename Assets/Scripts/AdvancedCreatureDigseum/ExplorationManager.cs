@@ -831,19 +831,19 @@ namespace AdvancedCreatureDigseum
             GameData.CurrentEnergy -= energyCost;
 
             // Deal damage to tiles based on radius - spread damage system
-            // Center tile takes full DigPower, surrounding tiles take heavily reduced damage
+            // Center tile takes full DigPower, surrounding tiles take reduced damage
             int revealed = 0;
             int damaged = 0;
 
-            // Nerfed: use smaller effective radius for spread (half of DigRadius, min 0)
-            int spreadRadius = Mathf.Max(0, (GameData.DigRadius - 1) / 2);
+            // Balanced spread radius: DigRadius 1=0, 2=1, 3=1, 4=2, 5=2, etc.
+            int spreadRadius = GameData.DigRadius / 2;
 
             for (int dx = -spreadRadius; dx <= spreadRadius; dx++)
             {
                 for (int dy = -spreadRadius; dy <= spreadRadius; dy++)
                 {
                     float distSq = dx * dx + dy * dy;
-                    // Stricter circular check
+                    // Circular check
                     if (distSq <= spreadRadius * spreadRadius + 0.5f)
                     {
                         int tx = gridX + dx;
@@ -854,10 +854,10 @@ namespace AdvancedCreatureDigseum
                             if (!revealedTiles[tx, ty])
                             {
                                 // Calculate damage based on distance from center
-                                // Center (0,0) = full damage, edges = heavily reduced damage
+                                // Center (0,0) = full damage, edges = reduced damage
                                 float dist = Mathf.Sqrt(distSq);
-                                // Nerfed: 90% falloff at edges (was 70%), so edges only do 10% damage
-                                float damageMultiplier = 1f - (dist / (spreadRadius + 1f)) * 0.9f;
+                                // 80% falloff at edges, so edges do 20% damage
+                                float damageMultiplier = 1f - (dist / (spreadRadius + 1f)) * 0.8f;
                                 int damage = Mathf.Max(1, Mathf.RoundToInt(GameData.DigPower * damageMultiplier));
 
                                 // Apply damage
