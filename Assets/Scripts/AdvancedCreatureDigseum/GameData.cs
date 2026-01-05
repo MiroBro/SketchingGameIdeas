@@ -596,6 +596,39 @@ namespace AdvancedCreatureDigseum
                 }
             }
         }
+
+        // Check if a hybrid is available for fusion (not placed in any pasture)
+        public static bool IsHybridAvailableForFusion(string hybridId)
+        {
+            foreach (var placed in PlacedHybrids)
+            {
+                if (placed.HybridIds.Contains(hybridId))
+                {
+                    return false; // Already placed
+                }
+            }
+            return true;
+        }
+
+        // Get list of hybrids available for fusion
+        public static List<HybridData> GetAvailableHybridsForFusion()
+        {
+            List<HybridData> available = new List<HybridData>();
+            foreach (var hybrid in Hybrids)
+            {
+                if (IsHybridAvailableForFusion(hybrid.Id))
+                {
+                    available.Add(hybrid);
+                }
+            }
+            return available;
+        }
+
+        // Remove a hybrid from the list (consumed in fusion)
+        public static void RemoveHybrid(string hybridId)
+        {
+            Hybrids.RemoveAll(h => h.Id == hybridId);
+        }
     }
 
     [System.Serializable]
@@ -607,9 +640,11 @@ namespace AdvancedCreatureDigseum
         public string Parent2Id;
         public AnimalTraits MixedTraits;
         public int BaseValue;
+        public int Generation = 1; // Track how many times fused
 
         public HybridData() { }
 
+        // Animal + Animal
         public HybridData(AnimalData parent1, AnimalData parent2)
         {
             Id = $"hybrid_{parent1.Id}_{parent2.Id}_{Random.Range(1000, 9999)}";
@@ -617,31 +652,83 @@ namespace AdvancedCreatureDigseum
             Parent1Id = parent1.Id;
             Parent2Id = parent2.Id;
             MixedTraits = AnimalTraits.Mix(parent1.Traits, parent2.Traits);
+            BaseValue = CalculateBaseValue(parent1.Rarity, parent2.Rarity, parent1.Traits, parent2.Traits);
+            Generation = 1;
+        }
 
-            // Base value from rarity and trait extremes
-            BaseValue = CalculateBaseValue(parent1, parent2);
+        // Animal + Hybrid
+        public HybridData(AnimalData animal, HybridData hybrid)
+        {
+            Id = $"hybrid_{animal.Id}_{hybrid.Id}_{Random.Range(1000, 9999)}";
+            Name = GenerateHybridName(animal.Name, hybrid.Name);
+            Parent1Id = animal.Id;
+            Parent2Id = hybrid.Id;
+            MixedTraits = AnimalTraits.Mix(animal.Traits, hybrid.MixedTraits);
+            // Hybrids add more value (rarity equivalent = generation * 2)
+            BaseValue = CalculateBaseValueWithHybrid(animal.Rarity, hybrid.Generation * 2, animal.Traits, hybrid.MixedTraits);
+            Generation = hybrid.Generation + 1;
+        }
+
+        // Hybrid + Animal (same as above, different order)
+        public HybridData(HybridData hybrid, AnimalData animal)
+        {
+            Id = $"hybrid_{hybrid.Id}_{animal.Id}_{Random.Range(1000, 9999)}";
+            Name = GenerateHybridName(hybrid.Name, animal.Name);
+            Parent1Id = hybrid.Id;
+            Parent2Id = animal.Id;
+            MixedTraits = AnimalTraits.Mix(hybrid.MixedTraits, animal.Traits);
+            BaseValue = CalculateBaseValueWithHybrid(hybrid.Generation * 2, animal.Rarity, hybrid.MixedTraits, animal.Traits);
+            Generation = hybrid.Generation + 1;
+        }
+
+        // Hybrid + Hybrid
+        public HybridData(HybridData hybrid1, HybridData hybrid2)
+        {
+            Id = $"hybrid_{hybrid1.Id}_{hybrid2.Id}_{Random.Range(1000, 9999)}";
+            Name = GenerateHybridName(hybrid1.Name, hybrid2.Name);
+            Parent1Id = hybrid1.Id;
+            Parent2Id = hybrid2.Id;
+            MixedTraits = AnimalTraits.Mix(hybrid1.MixedTraits, hybrid2.MixedTraits);
+            // Double hybrid = even more valuable
+            int effectiveRarity1 = hybrid1.Generation * 2 + hybrid1.BaseValue / 5;
+            int effectiveRarity2 = hybrid2.Generation * 2 + hybrid2.BaseValue / 5;
+            BaseValue = CalculateBaseValueWithHybrid(effectiveRarity1, effectiveRarity2, hybrid1.MixedTraits, hybrid2.MixedTraits);
+            Generation = Mathf.Max(hybrid1.Generation, hybrid2.Generation) + 1;
         }
 
         string GenerateHybridName(string name1, string name2)
         {
             // Take first half of name1 and second half of name2
-            int mid1 = name1.Length / 2;
-            int mid2 = name2.Length / 2;
+            int mid1 = Mathf.Max(1, name1.Length / 2);
+            int mid2 = Mathf.Max(1, name2.Length / 2);
             return name1.Substring(0, mid1) + name2.Substring(mid2);
         }
 
-        int CalculateBaseValue(AnimalData p1, AnimalData p2)
+        int CalculateBaseValue(int rarity1, int rarity2, AnimalTraits t1, AnimalTraits t2)
         {
-            // Base income starts low for balanced 2-3 hour gameplay
             int value = 3;
-            value += p1.Rarity * 2;
-            value += p2.Rarity * 2;
+            value += rarity1 * 2;
+            value += rarity2 * 2;
 
-            // Small bonus for mixing very different animals
-            float traitDiff = Mathf.Abs(p1.Traits.BodyLength - p2.Traits.BodyLength) +
-                             Mathf.Abs(p1.Traits.NeckLength - p2.Traits.NeckLength) +
-                             Mathf.Abs(p1.Traits.LegLength - p2.Traits.LegLength);
+            float traitDiff = Mathf.Abs(t1.BodyLength - t2.BodyLength) +
+                             Mathf.Abs(t1.NeckLength - t2.NeckLength) +
+                             Mathf.Abs(t1.LegLength - t2.LegLength);
             value += (int)(traitDiff * 3);
+
+            return value;
+        }
+
+        int CalculateBaseValueWithHybrid(int rarity1, int rarity2, AnimalTraits t1, AnimalTraits t2)
+        {
+            // Hybrids are worth more
+            int value = 5;
+            value += rarity1 * 2;
+            value += rarity2 * 2;
+
+            float traitDiff = Mathf.Abs(t1.BodyLength - t2.BodyLength) +
+                             Mathf.Abs(t1.NeckLength - t2.NeckLength) +
+                             Mathf.Abs(t1.LegLength - t2.LegLength);
+            value += (int)(traitDiff * 4);
 
             return value;
         }

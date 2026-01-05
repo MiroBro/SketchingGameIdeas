@@ -1796,11 +1796,19 @@ namespace AdvancedCreatureDigseum
         private List<PlacedHybrid> pastures;
         private int visitedCount = 0;
         private int maxVisits = 5;
-        private float pastureRadius = 1.0f; // Size of pasture to avoid
+        private float pastureRadius = 1.0f;
+
+        // Anti-vibration: smooth direction and stuck detection
+        private Vector3 smoothedDirection = Vector3.zero;
+        private Vector3 lastPosition;
+        private float stuckTimer = 0f;
+        private const float STUCK_THRESHOLD = 0.1f;
+        private const float STUCK_TIME = 1.5f;
 
         public void Initialize(List<PlacedHybrid> pastureList)
         {
             pastures = pastureList;
+            lastPosition = transform.position;
             PickNewTarget();
         }
 
@@ -1822,16 +1830,34 @@ namespace AdvancedCreatureDigseum
             if (validTargets.Count > 0 && Random.value > 0.3f)
             {
                 var target = validTargets[Random.Range(0, validTargets.Count)];
-                // Stand at edge of pasture to view the animal, not inside it
-                float angle = Random.Range(0f, Mathf.PI * 2f);
-                float edgeDist = pastureRadius + 0.3f;
+                // Find a clear viewing spot - try multiple angles
+                float bestAngle = Random.Range(0f, Mathf.PI * 2f);
+                float bestClearance = 0f;
+
+                for (int i = 0; i < 8; i++)
+                {
+                    float testAngle = i * Mathf.PI * 0.25f;
+                    float edgeDist = pastureRadius + 0.5f;
+                    Vector3 testPos = new Vector3(
+                        target.Position.x + Mathf.Cos(testAngle) * edgeDist,
+                        target.Position.y + Mathf.Sin(testAngle) * edgeDist, 0);
+
+                    float clearance = GetMinPastureClearance(testPos, target.Position);
+                    if (clearance > bestClearance)
+                    {
+                        bestClearance = clearance;
+                        bestAngle = testAngle;
+                    }
+                }
+
+                float finalDist = pastureRadius + 0.5f;
                 targetPos = new Vector3(
-                    target.Position.x + Mathf.Cos(angle) * edgeDist,
-                    target.Position.y + Mathf.Sin(angle) * edgeDist, 0);
+                    target.Position.x + Mathf.Cos(bestAngle) * finalDist,
+                    target.Position.y + Mathf.Sin(bestAngle) * finalDist, 0);
             }
             else
             {
-                // Random wander - find a spot not inside any pasture
+                // Random wander - find a clear spot
                 int attempts = 0;
                 do
                 {
@@ -1841,6 +1867,21 @@ namespace AdvancedCreatureDigseum
             }
 
             waitTimer = 0f;
+            stuckTimer = 0f;
+        }
+
+        float GetMinPastureClearance(Vector3 pos, Vector2 excludePasture)
+        {
+            if (pastures == null) return 10f;
+            float minClearance = 10f;
+            foreach (var p in pastures)
+            {
+                if (Vector2.Distance(p.Position, excludePasture) < 0.1f) continue;
+                float dist = Vector2.Distance(new Vector2(pos.x, pos.y), p.Position);
+                float clearance = dist - pastureRadius;
+                if (clearance < minClearance) minClearance = clearance;
+            }
+            return minClearance;
         }
 
         bool IsInsideAnyPasture(Vector3 pos)
@@ -1860,24 +1901,38 @@ namespace AdvancedCreatureDigseum
             if (pastures == null) return desiredDir;
 
             Vector3 avoidance = Vector3.zero;
+            int nearbyCount = 0;
+
             foreach (var p in pastures)
             {
                 Vector2 pasturePos = p.Position;
                 float dist = Vector2.Distance(new Vector2(currentPos.x, currentPos.y), pasturePos);
 
-                // If we're close to a pasture, add avoidance force
-                if (dist < pastureRadius + 0.5f)
+                if (dist < pastureRadius + 0.6f)
                 {
+                    nearbyCount++;
                     Vector3 awayFromPasture = currentPos - new Vector3(pasturePos.x, pasturePos.y, 0);
-                    awayFromPasture.Normalize();
-                    // Stronger avoidance when closer
-                    float strength = 1f - (dist / (pastureRadius + 0.5f));
-                    avoidance += awayFromPasture * strength * 2f;
+                    if (awayFromPasture.magnitude > 0.01f)
+                    {
+                        awayFromPasture.Normalize();
+                        float strength = 1f - (dist / (pastureRadius + 0.6f));
+                        avoidance += awayFromPasture * strength * 2f;
+                    }
                 }
             }
 
-            // Blend desired direction with avoidance
+            // If surrounded by multiple pastures, prioritize escaping over reaching target
+            if (nearbyCount >= 2 && avoidance.magnitude > 0.5f)
+            {
+                return avoidance.normalized;
+            }
+
             Vector3 result = desiredDir + avoidance;
+            if (result.magnitude < 0.1f)
+            {
+                // Deadlock - move perpendicular to break tie
+                return new Vector3(-desiredDir.y, desiredDir.x, 0).normalized;
+            }
             return result.normalized;
         }
 
@@ -1891,7 +1946,6 @@ namespace AdvancedCreatureDigseum
                     visitedCount++;
                     if (visitedCount >= maxVisits)
                     {
-                        // Leave the zoo
                         targetPos = new Vector3(transform.position.x > 0 ? 10f : -10f, transform.position.y, 0);
                     }
                     else
@@ -1902,24 +1956,51 @@ namespace AdvancedCreatureDigseum
                 return;
             }
 
-            Vector3 desiredDir = (targetPos - transform.position).normalized;
-            // Apply pasture avoidance
-            Vector3 dir = GetAvoidanceDirection(transform.position, desiredDir);
-
-            transform.position += dir * speed * Time.deltaTime;
-
-            // Flip sprite based on direction
-            if (dir.x != 0)
+            // Check if stuck
+            float distMoved = Vector3.Distance(transform.position, lastPosition);
+            if (distMoved < STUCK_THRESHOLD * Time.deltaTime * 60f)
             {
-                transform.localScale = new Vector3(dir.x > 0 ? 1 : -1, 1, 1);
+                stuckTimer += Time.deltaTime;
+                if (stuckTimer > STUCK_TIME)
+                {
+                    // Stuck! Pick new target or teleport to safety
+                    stuckTimer = 0f;
+                    if (IsInsideAnyPasture(transform.position))
+                    {
+                        // Emergency teleport out
+                        transform.position = new Vector3(
+                            Random.Range(-4f, 4f),
+                            Random.Range(-3f, 3f), 0);
+                    }
+                    PickNewTarget();
+                    return;
+                }
+            }
+            else
+            {
+                stuckTimer = 0f;
+            }
+            lastPosition = transform.position;
+
+            Vector3 desiredDir = (targetPos - transform.position).normalized;
+            Vector3 rawDir = GetAvoidanceDirection(transform.position, desiredDir);
+
+            // Smooth direction to prevent vibration
+            smoothedDirection = Vector3.Lerp(smoothedDirection, rawDir, Time.deltaTime * 5f);
+            if (smoothedDirection.magnitude < 0.1f) smoothedDirection = rawDir;
+
+            transform.position += smoothedDirection.normalized * speed * Time.deltaTime;
+
+            if (smoothedDirection.x != 0)
+            {
+                transform.localScale = new Vector3(smoothedDirection.x > 0 ? 1 : -1, 1, 1);
             }
 
-            if (Vector3.Distance(transform.position, targetPos) < 0.3f)
+            if (Vector3.Distance(transform.position, targetPos) < 0.4f)
             {
                 waitTimer = Random.Range(1.5f, 3f);
             }
 
-            // Destroy if too far from zoo
             if (Mathf.Abs(transform.position.x) > 12f || Mathf.Abs(transform.position.y) > 8f)
             {
                 Destroy(gameObject);

@@ -13,8 +13,13 @@ namespace AdvancedCreatureDigseum
         private List<GameObject> animalDisplays = new List<GameObject>();
         private List<GameObject> hybridDisplays = new List<GameObject>();
 
-        private AnimalData selectedParent1;
-        private AnimalData selectedParent2;
+        // Fusion candidates can be animal OR hybrid
+        private AnimalData selectedAnimal1;
+        private AnimalData selectedAnimal2;
+        private HybridData selectedHybrid1;
+        private HybridData selectedHybrid2;
+        private int selectedSlot = 0; // 0 = none, 1 = slot1 filled, 2 = both filled
+
         private GameObject parent1Preview;
         private GameObject parent2Preview;
         private GameObject resultPreview;
@@ -25,10 +30,14 @@ namespace AdvancedCreatureDigseum
         private TextMeshProUGUI hybridListText;
         private TextMeshProUGUI feedbackText;
         private float feedbackTimer;
+        private Transform canvasTransform;
+        private TextMeshProUGUI animalPageText;
+        private TextMeshProUGUI hybridPageText;
 
         private int currentPage = 0;
         private int animalsPerPage = 12;
         private int hybridPage = 0;
+        private int hybridsPerPage = 6;
 
         // Autosave
         private float saveTimer = 0f;
@@ -50,6 +59,7 @@ namespace AdvancedCreatureDigseum
         void CreateUI()
         {
             GameObject canvasObj = new GameObject("Canvas");
+            canvasTransform = canvasObj.transform;
             Canvas canvas = canvasObj.AddComponent<Canvas>();
             canvas.renderMode = RenderMode.ScreenSpaceOverlay;
             CanvasScaler scaler = canvasObj.AddComponent<CanvasScaler>();
@@ -97,10 +107,10 @@ namespace AdvancedCreatureDigseum
 
             // Instructions
             TextMeshProUGUI instructions = CreateText(canvasObj.transform, new Vector2(-10, navY - 170),
-                "Click animals to select\n" +
+                "Click creatures to select\n" +
                 "SPACE: Fuse pair\n" +
-                "(Uses 1 of each animal)\n" +
                 "C: Clear selection\n\n" +
+                "Click arrows or use:\n" +
                 "A/D: Animal pages\n" +
                 "W/S: Hybrid pages");
             RectTransform instRect = instructions.GetComponent<RectTransform>();
@@ -119,6 +129,168 @@ namespace AdvancedCreatureDigseum
             fbRect.sizeDelta = new Vector2(600, 60);
             feedbackText.alignment = TextAlignmentOptions.Center;
             feedbackText.fontSize = 28;
+
+            // Create scroll UI for animals (bottom left)
+            CreateScrollControls(canvasObj.transform, new Vector2(120, 60), "Animals", true);
+
+            // Create scroll UI for hybrids (bottom right)
+            CreateScrollControls(canvasObj.transform, new Vector2(-120, 60), "Hybrids", false);
+        }
+
+        void CreateScrollControls(Transform parent, Vector2 position, string label, bool isAnimalScroll)
+        {
+            // Container
+            GameObject container = new GameObject($"Scroll_{label}");
+            container.transform.SetParent(parent);
+            RectTransform containerRect = container.AddComponent<RectTransform>();
+
+            if (isAnimalScroll)
+            {
+                containerRect.anchorMin = new Vector2(0, 0);
+                containerRect.anchorMax = new Vector2(0, 0);
+                containerRect.pivot = new Vector2(0, 0);
+            }
+            else
+            {
+                containerRect.anchorMin = new Vector2(1, 0);
+                containerRect.anchorMax = new Vector2(1, 0);
+                containerRect.pivot = new Vector2(1, 0);
+            }
+            containerRect.anchoredPosition = position;
+            containerRect.sizeDelta = new Vector2(200, 40);
+            containerRect.localScale = Vector3.one;
+
+            // Left arrow button
+            CreateScrollButton(container.transform, new Vector2(0, 0), "<", () => {
+                if (isAnimalScroll) PrevAnimalPage();
+                else PrevHybridPage();
+            });
+
+            // Page text
+            TextMeshProUGUI pageText = CreateText(container.transform, new Vector2(40, 0), "1/1");
+            pageText.fontSize = 16;
+            pageText.alignment = TextAlignmentOptions.Center;
+            RectTransform pageRect = pageText.GetComponent<RectTransform>();
+            pageRect.anchorMin = new Vector2(0, 0);
+            pageRect.anchorMax = new Vector2(0, 0);
+            pageRect.pivot = new Vector2(0, 0);
+            pageRect.sizeDelta = new Vector2(80, 30);
+
+            if (isAnimalScroll)
+                animalPageText = pageText;
+            else
+                hybridPageText = pageText;
+
+            // Right arrow button
+            CreateScrollButton(container.transform, new Vector2(120, 0), ">", () => {
+                if (isAnimalScroll) NextAnimalPage();
+                else NextHybridPage();
+            });
+
+            // Label
+            TextMeshProUGUI labelText = CreateText(container.transform, new Vector2(40, 25), label);
+            labelText.fontSize = 12;
+            labelText.alignment = TextAlignmentOptions.Center;
+            RectTransform labelRect = labelText.GetComponent<RectTransform>();
+            labelRect.anchorMin = new Vector2(0, 0);
+            labelRect.anchorMax = new Vector2(0, 0);
+            labelRect.pivot = new Vector2(0, 0);
+            labelRect.sizeDelta = new Vector2(80, 20);
+        }
+
+        void CreateScrollButton(Transform parent, Vector2 position, string text, System.Action onClick)
+        {
+            GameObject btnObj = new GameObject($"ScrollBtn_{text}");
+            btnObj.transform.SetParent(parent);
+
+            RectTransform rect = btnObj.AddComponent<RectTransform>();
+            rect.anchorMin = new Vector2(0, 0);
+            rect.anchorMax = new Vector2(0, 0);
+            rect.pivot = new Vector2(0, 0);
+            rect.anchoredPosition = position;
+            rect.sizeDelta = new Vector2(35, 30);
+            rect.localScale = Vector3.one;
+
+            Image img = btnObj.AddComponent<Image>();
+            img.color = new Color(0.4f, 0.35f, 0.5f);
+
+            Button btn = btnObj.AddComponent<Button>();
+            btn.onClick.AddListener(() => onClick());
+
+            GameObject textObj = new GameObject("Text");
+            textObj.transform.SetParent(btnObj.transform);
+            RectTransform textRect = textObj.AddComponent<RectTransform>();
+            textRect.anchorMin = Vector2.zero;
+            textRect.anchorMax = Vector2.one;
+            textRect.offsetMin = Vector2.zero;
+            textRect.offsetMax = Vector2.zero;
+            textRect.localScale = Vector3.one;
+
+            TextMeshProUGUI tmp = textObj.AddComponent<TextMeshProUGUI>();
+            tmp.text = text;
+            tmp.fontSize = 18;
+            tmp.color = Color.white;
+            tmp.alignment = TextAlignmentOptions.Center;
+            tmp.raycastTarget = false;
+        }
+
+        void PrevAnimalPage()
+        {
+            currentPage = Mathf.Max(0, currentPage - 1);
+            DisplayAnimals();
+            UpdatePageIndicators();
+        }
+
+        void NextAnimalPage()
+        {
+            int totalAnimals = GetTotalAvailableAnimals();
+            int maxPage = Mathf.Max(0, (totalAnimals - 1) / animalsPerPage);
+            currentPage = Mathf.Min(maxPage, currentPage + 1);
+            DisplayAnimals();
+            UpdatePageIndicators();
+        }
+
+        void PrevHybridPage()
+        {
+            hybridPage = Mathf.Max(0, hybridPage - 1);
+            DisplayHybrids();
+            UpdatePageIndicators();
+        }
+
+        void NextHybridPage()
+        {
+            var availableHybrids = GameData.GetAvailableHybridsForFusion();
+            int maxPage = Mathf.Max(0, (availableHybrids.Count - 1) / hybridsPerPage);
+            hybridPage = Mathf.Min(maxPage, hybridPage + 1);
+            DisplayHybrids();
+            UpdatePageIndicators();
+        }
+
+        int GetTotalAvailableAnimals()
+        {
+            int total = 0;
+            foreach (var biome in BiomeDatabase.Biomes)
+                foreach (var animal in biome.Animals)
+                    if (GameData.CanUseAnimal(animal.Id))
+                        total++;
+            return total;
+        }
+
+        void UpdatePageIndicators()
+        {
+            if (animalPageText != null)
+            {
+                int totalAnimals = GetTotalAvailableAnimals();
+                int totalPages = Mathf.Max(1, Mathf.CeilToInt((float)totalAnimals / animalsPerPage));
+                animalPageText.text = $"{currentPage + 1}/{totalPages}";
+            }
+
+            if (hybridPageText != null)
+            {
+                var availableHybrids = GameData.GetAvailableHybridsForFusion();
+                int totalPages = Mathf.Max(1, Mathf.CeilToInt((float)availableHybrids.Count / hybridsPerPage));
+                hybridPageText.text = $"{hybridPage + 1}/{totalPages}";
+            }
         }
 
         TextMeshProUGUI CreateText(Transform parent, Vector2 position, string text)
@@ -297,15 +469,27 @@ namespace AdvancedCreatureDigseum
                 handler.Animal = animal;
                 handler.Manager = this;
 
-                // Show count
+                // Show count badge
                 GameObject countObj = new GameObject("Count");
                 countObj.transform.parent = animalObj.transform;
-                countObj.transform.localPosition = new Vector3(0.5f, 0.8f, 0);
+                countObj.transform.localPosition = new Vector3(0.6f, 0.7f, 0);
                 TextMeshPro countText = countObj.AddComponent<TextMeshPro>();
                 countText.text = $"x{GameData.GetAnimalFoundCount(animal.Id)}";
                 countText.fontSize = 2;
                 countText.alignment = TextAlignmentOptions.Center;
                 countText.sortingOrder = 10;
+                countText.color = new Color(1f, 1f, 0.5f);
+
+                // Show name label below
+                GameObject nameObj = new GameObject("Name");
+                nameObj.transform.parent = animalObj.transform;
+                nameObj.transform.localPosition = new Vector3(0, -1f, 0);
+                TextMeshPro nameText = nameObj.AddComponent<TextMeshPro>();
+                nameText.text = animal.Name;
+                nameText.fontSize = 1.5f;
+                nameText.alignment = TextAlignmentOptions.Center;
+                nameText.sortingOrder = 10;
+                nameText.color = Color.white;
 
                 animalDisplays.Add(animalObj);
 
@@ -316,6 +500,8 @@ namespace AdvancedCreatureDigseum
                     row++;
                 }
             }
+
+            UpdatePageIndicators();
         }
 
         void DisplayHybrids()
@@ -326,15 +512,18 @@ namespace AdvancedCreatureDigseum
             }
             hybridDisplays.Clear();
 
+            // Only show hybrids available for fusion (not placed)
+            var availableHybrids = GameData.GetAvailableHybridsForFusion();
+
             int startIndex = hybridPage * 6;
-            int endIndex = Mathf.Min(startIndex + 6, GameData.Hybrids.Count);
+            int endIndex = Mathf.Min(startIndex + 6, availableHybrids.Count);
 
             float startX = 3f;
             float startY = -1.5f;
 
             for (int i = startIndex; i < endIndex; i++)
             {
-                HybridData hybrid = GameData.Hybrids[i];
+                HybridData hybrid = availableHybrids[i];
 
                 float x = startX + (i - startIndex) % 2 * 1.2f;
                 float y = startY - (i - startIndex) / 2 * 1.4f;
@@ -346,58 +535,138 @@ namespace AdvancedCreatureDigseum
                 CreatureRenderer renderer = hybridObj.AddComponent<CreatureRenderer>();
                 renderer.RenderHybrid(hybrid);
 
+                // Add click handler for fusion
+                BoxCollider2D col2d = hybridObj.AddComponent<BoxCollider2D>();
+                col2d.size = new Vector2(1.5f, 1.5f);
+
+                HybridClickHandler handler = hybridObj.AddComponent<HybridClickHandler>();
+                handler.Hybrid = hybrid;
+                handler.Manager = this;
+
+                // Show generation badge
+                GameObject genObj = new GameObject("Gen");
+                genObj.transform.parent = hybridObj.transform;
+                genObj.transform.localPosition = new Vector3(0.6f, 0.7f, 0);
+                TextMeshPro genText = genObj.AddComponent<TextMeshPro>();
+                genText.text = $"G{hybrid.Generation}";
+                genText.fontSize = 2;
+                genText.alignment = TextAlignmentOptions.Center;
+                genText.sortingOrder = 10;
+                genText.color = new Color(0.5f, 1f, 0.5f); // Green for generation
+
+                // Show name label below
+                GameObject nameObj = new GameObject("Name");
+                nameObj.transform.parent = hybridObj.transform;
+                nameObj.transform.localPosition = new Vector3(0, -1.2f, 0);
+                TextMeshPro nameText = nameObj.AddComponent<TextMeshPro>();
+                // Truncate long names
+                string displayName = hybrid.Name.Length > 10 ? hybrid.Name.Substring(0, 8) + ".." : hybrid.Name;
+                nameText.text = displayName;
+                nameText.fontSize = 1.3f;
+                nameText.alignment = TextAlignmentOptions.Center;
+                nameText.sortingOrder = 10;
+                nameText.color = Color.white;
+
+                // Show value below name
+                GameObject valueObj = new GameObject("Value");
+                valueObj.transform.parent = hybridObj.transform;
+                valueObj.transform.localPosition = new Vector3(0, -1.6f, 0);
+                TextMeshPro valueText = valueObj.AddComponent<TextMeshPro>();
+                valueText.text = $"${hybrid.GetTotalValue()}";
+                valueText.fontSize = 1.2f;
+                valueText.alignment = TextAlignmentOptions.Center;
+                valueText.sortingOrder = 10;
+                valueText.color = new Color(1f, 0.9f, 0.3f); // Gold color
+
                 hybridDisplays.Add(hybridObj);
             }
 
             // Update hybrid list text
             if (hybridListText != null)
             {
-                string list = $"Hybrids ({GameData.Hybrids.Count}):\n";
-                for (int i = startIndex; i < endIndex; i++)
-                {
-                    var h = GameData.Hybrids[i];
-                    list += $"- {h.Name} (${h.GetTotalValue()})\n";
-                }
+                int placedCount = GameData.Hybrids.Count - availableHybrids.Count;
+                string list = $"Hybrids: {availableHybrids.Count} available\n";
+                list += $"({placedCount} placed in zoo)\n\n";
+                list += "Click hybrids to fuse them!\n";
+                list += "Higher generations = more value!";
                 hybridListText.text = list;
             }
+
+            UpdatePageIndicators();
         }
 
         public void SelectAnimal(AnimalData animal)
         {
-            // Check if animal still has available count
             if (!GameData.CanUseAnimal(animal.Id))
             {
                 ShowFeedback($"No more {animal.Name} available!", Color.red);
                 return;
             }
 
-            if (selectedParent1 == null)
+            if (selectedSlot == 0)
             {
-                selectedParent1 = animal;
+                // First selection
+                selectedAnimal1 = animal;
+                selectedHybrid1 = null;
+                selectedSlot = 1;
                 UpdateParentPreviews();
                 ShowFeedback($"Selected {animal.Name} as Parent 1", Color.cyan);
             }
-            else if (selectedParent2 == null && animal.Id != selectedParent1.Id)
+            else if (selectedSlot == 1)
             {
-                selectedParent2 = animal;
+                // Second selection - check for same animal case
+                bool isSameAnimal = selectedAnimal1 != null && animal.Id == selectedAnimal1.Id;
+                if (isSameAnimal && GameData.GetAnimalFoundCount(animal.Id) < 2)
+                {
+                    ShowFeedback($"Need 2 of {animal.Name} to fuse with itself!", Color.red);
+                    return;
+                }
+
+                selectedAnimal2 = animal;
+                selectedHybrid2 = null;
+                selectedSlot = 2;
                 UpdateParentPreviews();
                 ShowFeedback($"Selected {animal.Name} as Parent 2. Press SPACE!", Color.cyan);
             }
-            else if (animal.Id == selectedParent1.Id && selectedParent2 == null)
+            else
             {
-                // Check if we have at least 2 of this animal to fuse with itself
-                if (GameData.GetAnimalFoundCount(animal.Id) >= 2)
-                {
-                    selectedParent2 = animal;
-                    UpdateParentPreviews();
-                    ShowFeedback($"Selected same animal. Press SPACE to fuse!", Color.cyan);
-                }
-                else
-                {
-                    ShowFeedback($"Need 2 of {animal.Name} to fuse with itself!", Color.red);
-                }
+                // Already have 2 selected - deselect
+                ClearSelection();
             }
-            else if (animal.Id == selectedParent1?.Id || animal.Id == selectedParent2?.Id)
+        }
+
+        public void SelectHybrid(HybridData hybrid)
+        {
+            if (!GameData.IsHybridAvailableForFusion(hybrid.Id))
+            {
+                ShowFeedback($"{hybrid.Name} is placed in zoo!", Color.red);
+                return;
+            }
+
+            if (selectedSlot == 0)
+            {
+                selectedHybrid1 = hybrid;
+                selectedAnimal1 = null;
+                selectedSlot = 1;
+                UpdateParentPreviews();
+                ShowFeedback($"Selected {hybrid.Name} (G{hybrid.Generation}) as Parent 1", Color.cyan);
+            }
+            else if (selectedSlot == 1)
+            {
+                // Check if same hybrid
+                if (selectedHybrid1 != null && hybrid.Id == selectedHybrid1.Id)
+                {
+                    ShowFeedback("Can't fuse a hybrid with itself!", Color.red);
+                    return;
+                }
+
+                selectedHybrid2 = hybrid;
+                selectedAnimal2 = null;
+                selectedSlot = 2;
+                UpdateParentPreviews();
+                ShowFeedback($"Selected {hybrid.Name} (G{hybrid.Generation}) as Parent 2. Press SPACE!", Color.cyan);
+            }
+            else
             {
                 ClearSelection();
             }
@@ -408,29 +677,50 @@ namespace AdvancedCreatureDigseum
             if (parent1Preview != null) Destroy(parent1Preview);
             if (parent2Preview != null) Destroy(parent2Preview);
 
-            if (selectedParent1 != null)
+            // Parent 1
+            if (selectedAnimal1 != null)
             {
                 parent1Preview = new GameObject("Parent1Preview");
                 parent1Preview.transform.position = new Vector3(-2, 1, 0);
                 parent1Preview.transform.localScale = Vector3.one * 0.8f;
                 CreatureRenderer r1 = parent1Preview.AddComponent<CreatureRenderer>();
-                r1.RenderAnimal(selectedParent1);
+                r1.RenderAnimal(selectedAnimal1);
+            }
+            else if (selectedHybrid1 != null)
+            {
+                parent1Preview = new GameObject("Parent1Preview");
+                parent1Preview.transform.position = new Vector3(-2, 1, 0);
+                parent1Preview.transform.localScale = Vector3.one * 0.8f;
+                CreatureRenderer r1 = parent1Preview.AddComponent<CreatureRenderer>();
+                r1.RenderHybrid(selectedHybrid1);
             }
 
-            if (selectedParent2 != null)
+            // Parent 2
+            if (selectedAnimal2 != null)
             {
                 parent2Preview = new GameObject("Parent2Preview");
                 parent2Preview.transform.position = new Vector3(2, 1, 0);
                 parent2Preview.transform.localScale = Vector3.one * 0.8f;
                 CreatureRenderer r2 = parent2Preview.AddComponent<CreatureRenderer>();
-                r2.RenderAnimal(selectedParent2);
+                r2.RenderAnimal(selectedAnimal2);
+            }
+            else if (selectedHybrid2 != null)
+            {
+                parent2Preview = new GameObject("Parent2Preview");
+                parent2Preview.transform.position = new Vector3(2, 1, 0);
+                parent2Preview.transform.localScale = Vector3.one * 0.8f;
+                CreatureRenderer r2 = parent2Preview.AddComponent<CreatureRenderer>();
+                r2.RenderHybrid(selectedHybrid2);
             }
         }
 
         void ClearSelection()
         {
-            selectedParent1 = null;
-            selectedParent2 = null;
+            selectedAnimal1 = null;
+            selectedAnimal2 = null;
+            selectedHybrid1 = null;
+            selectedHybrid2 = null;
+            selectedSlot = 0;
             if (parent1Preview != null) Destroy(parent1Preview);
             if (parent2Preview != null) Destroy(parent2Preview);
             if (resultPreview != null) Destroy(resultPreview);
@@ -439,43 +729,90 @@ namespace AdvancedCreatureDigseum
 
         void TryFuse()
         {
-            if (selectedParent1 == null || selectedParent2 == null)
+            if (selectedSlot < 2)
             {
-                ShowFeedback("Select 2 animals first!", Color.red);
+                ShowFeedback("Select 2 creatures first!", Color.red);
                 return;
             }
 
-            // Check if we still have the animals
-            if (!GameData.CanUseAnimal(selectedParent1.Id))
+            // Validate selections still valid
+            if (selectedAnimal1 != null && !GameData.CanUseAnimal(selectedAnimal1.Id))
             {
-                ShowFeedback($"No more {selectedParent1.Name} available!", Color.red);
+                ShowFeedback($"No more {selectedAnimal1.Name} available!", Color.red);
                 ClearSelection();
                 DisplayAnimals();
                 return;
             }
-
-            if (!GameData.CanUseAnimal(selectedParent2.Id))
+            if (selectedAnimal2 != null && !GameData.CanUseAnimal(selectedAnimal2.Id))
             {
-                ShowFeedback($"No more {selectedParent2.Name} available!", Color.red);
+                ShowFeedback($"No more {selectedAnimal2.Name} available!", Color.red);
                 ClearSelection();
                 DisplayAnimals();
                 return;
             }
-
-            // If same animal, need 2
-            if (selectedParent1.Id == selectedParent2.Id && GameData.GetAnimalFoundCount(selectedParent1.Id) < 2)
+            if (selectedHybrid1 != null && !GameData.IsHybridAvailableForFusion(selectedHybrid1.Id))
             {
-                ShowFeedback($"Need 2 of {selectedParent1.Name}!", Color.red);
+                ShowFeedback($"{selectedHybrid1.Name} no longer available!", Color.red);
+                ClearSelection();
+                DisplayHybrids();
+                return;
+            }
+            if (selectedHybrid2 != null && !GameData.IsHybridAvailableForFusion(selectedHybrid2.Id))
+            {
+                ShowFeedback($"{selectedHybrid2.Name} no longer available!", Color.red);
+                ClearSelection();
+                DisplayHybrids();
                 return;
             }
 
-            // Consume the animals
-            GameData.UseAnimal(selectedParent1.Id);
-            GameData.UseAnimal(selectedParent2.Id);
+            // Same animal check
+            if (selectedAnimal1 != null && selectedAnimal2 != null &&
+                selectedAnimal1.Id == selectedAnimal2.Id &&
+                GameData.GetAnimalFoundCount(selectedAnimal1.Id) < 2)
+            {
+                ShowFeedback($"Need 2 of {selectedAnimal1.Name}!", Color.red);
+                return;
+            }
 
-            // Create hybrid
-            HybridData hybrid = new HybridData(selectedParent1, selectedParent2);
-            GameData.Hybrids.Add(hybrid);
+            // Create the hybrid based on what's selected
+            HybridData newHybrid = null;
+
+            if (selectedAnimal1 != null && selectedAnimal2 != null)
+            {
+                // Animal + Animal
+                GameData.UseAnimal(selectedAnimal1.Id);
+                GameData.UseAnimal(selectedAnimal2.Id);
+                newHybrid = new HybridData(selectedAnimal1, selectedAnimal2);
+            }
+            else if (selectedAnimal1 != null && selectedHybrid2 != null)
+            {
+                // Animal + Hybrid
+                GameData.UseAnimal(selectedAnimal1.Id);
+                GameData.RemoveHybrid(selectedHybrid2.Id);
+                newHybrid = new HybridData(selectedAnimal1, selectedHybrid2);
+            }
+            else if (selectedHybrid1 != null && selectedAnimal2 != null)
+            {
+                // Hybrid + Animal
+                GameData.RemoveHybrid(selectedHybrid1.Id);
+                GameData.UseAnimal(selectedAnimal2.Id);
+                newHybrid = new HybridData(selectedHybrid1, selectedAnimal2);
+            }
+            else if (selectedHybrid1 != null && selectedHybrid2 != null)
+            {
+                // Hybrid + Hybrid
+                GameData.RemoveHybrid(selectedHybrid1.Id);
+                GameData.RemoveHybrid(selectedHybrid2.Id);
+                newHybrid = new HybridData(selectedHybrid1, selectedHybrid2);
+            }
+
+            if (newHybrid == null)
+            {
+                ShowFeedback("Invalid selection!", Color.red);
+                return;
+            }
+
+            GameData.Hybrids.Add(newHybrid);
 
             // Show result
             if (resultPreview != null) Destroy(resultPreview);
@@ -483,13 +820,16 @@ namespace AdvancedCreatureDigseum
             resultPreview.transform.position = new Vector3(0, 1, 0);
             resultPreview.transform.localScale = Vector3.one;
             CreatureRenderer renderer = resultPreview.AddComponent<CreatureRenderer>();
-            renderer.RenderHybrid(hybrid);
+            renderer.RenderHybrid(newHybrid);
 
-            ShowFeedback($"Created {hybrid.Name}! Value: {hybrid.GetTotalValue()}g", Color.green);
+            ShowFeedback($"Created {newHybrid.Name} (G{newHybrid.Generation})! Value: {newHybrid.GetTotalValue()}g", Color.green);
 
             // Clear selection
-            selectedParent1 = null;
-            selectedParent2 = null;
+            selectedAnimal1 = null;
+            selectedAnimal2 = null;
+            selectedHybrid1 = null;
+            selectedHybrid2 = null;
+            selectedSlot = 0;
             if (parent1Preview != null) Destroy(parent1Preview);
             if (parent2Preview != null) Destroy(parent2Preview);
 
@@ -538,34 +878,15 @@ namespace AdvancedCreatureDigseum
                 if (keyboard.cKey.wasPressedThisFrame)
                     ClearSelection();
 
-                // Pagination
+                // Pagination - use centralized methods
                 if (keyboard.aKey.wasPressedThisFrame)
-                {
-                    currentPage = Mathf.Max(0, currentPage - 1);
-                    DisplayAnimals();
-                }
+                    PrevAnimalPage();
                 if (keyboard.dKey.wasPressedThisFrame)
-                {
-                    int totalAnimals = 0;
-                    foreach (var biome in BiomeDatabase.Biomes)
-                        foreach (var animal in biome.Animals)
-                            if (GameData.CanUseAnimal(animal.Id))
-                                totalAnimals++;
-                    int maxPage = (totalAnimals - 1) / animalsPerPage;
-                    currentPage = Mathf.Min(maxPage, currentPage + 1);
-                    DisplayAnimals();
-                }
+                    NextAnimalPage();
                 if (keyboard.wKey.wasPressedThisFrame)
-                {
-                    hybridPage = Mathf.Max(0, hybridPage - 1);
-                    DisplayHybrids();
-                }
+                    PrevHybridPage();
                 if (keyboard.sKey.wasPressedThisFrame)
-                {
-                    int maxPage = (GameData.Hybrids.Count - 1) / 6;
-                    hybridPage = Mathf.Min(Mathf.Max(0, maxPage), hybridPage + 1);
-                    DisplayHybrids();
-                }
+                    NextHybridPage();
             }
 
             // Click detection
@@ -576,10 +897,16 @@ namespace AdvancedCreatureDigseum
 
                 if (hit.collider != null)
                 {
-                    AnimalClickHandler handler = hit.collider.GetComponent<AnimalClickHandler>();
-                    if (handler != null)
+                    AnimalClickHandler animalHandler = hit.collider.GetComponent<AnimalClickHandler>();
+                    if (animalHandler != null)
                     {
-                        SelectAnimal(handler.Animal);
+                        SelectAnimal(animalHandler.Animal);
+                    }
+
+                    HybridClickHandler hybridHandler = hit.collider.GetComponent<HybridClickHandler>();
+                    if (hybridHandler != null)
+                    {
+                        SelectHybrid(hybridHandler.Hybrid);
                     }
                 }
             }
@@ -612,8 +939,19 @@ namespace AdvancedCreatureDigseum
 
             if (selectionText != null)
             {
-                string p1 = selectedParent1 != null ? $"{selectedParent1.Name} (x{GameData.GetAnimalFoundCount(selectedParent1.Id)})" : "None";
-                string p2 = selectedParent2 != null ? $"{selectedParent2.Name} (x{GameData.GetAnimalFoundCount(selectedParent2.Id)})" : "None";
+                string p1 = "None";
+                string p2 = "None";
+
+                if (selectedAnimal1 != null)
+                    p1 = $"{selectedAnimal1.Name} (x{GameData.GetAnimalFoundCount(selectedAnimal1.Id)})";
+                else if (selectedHybrid1 != null)
+                    p1 = $"{selectedHybrid1.Name} (G{selectedHybrid1.Generation})";
+
+                if (selectedAnimal2 != null)
+                    p2 = $"{selectedAnimal2.Name} (x{GameData.GetAnimalFoundCount(selectedAnimal2.Id)})";
+                else if (selectedHybrid2 != null)
+                    p2 = $"{selectedHybrid2.Name} (G{selectedHybrid2.Generation})";
+
                 selectionText.text = $"Parent 1: {p1}\nParent 2: {p2}";
             }
         }
@@ -622,6 +960,12 @@ namespace AdvancedCreatureDigseum
     public class AnimalClickHandler : MonoBehaviour
     {
         public AnimalData Animal;
+        public FusionLabManager Manager;
+    }
+
+    public class HybridClickHandler : MonoBehaviour
+    {
+        public HybridData Hybrid;
         public FusionLabManager Manager;
     }
 }

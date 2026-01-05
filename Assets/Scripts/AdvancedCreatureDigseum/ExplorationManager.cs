@@ -10,13 +10,19 @@ namespace AdvancedCreatureDigseum
     public class ExplorationManager : MonoBehaviour
     {
         [Header("Grid Settings")]
-        public int gridWidth = 20;
-        public int gridHeight = 15;
+        public int baseGridWidth = 12;   // Base size for first biome
+        public int baseGridHeight = 10;
         public float tileSize = 0.5f;
+
+        // Actual grid size (scales with biome)
+        private int gridWidth;
+        private int gridHeight;
 
         private int currentBiomeIndex = 0;
         private BiomeData currentBiome;
         private bool[,] revealedTiles;
+        private int[,] tileHealth;  // Health remaining on each tile
+        private int[,] tileMaxHealth; // Max health for visual feedback
         private Dictionary<Vector2Int, AnimalData> hiddenAnimals;
         private Camera mainCamera;
 
@@ -31,6 +37,7 @@ namespace AdvancedCreatureDigseum
         // Fog visual
         private GameObject fogParent;
         private SpriteRenderer[,] fogSprites;
+        private Color[,] originalFogColors; // Store original colors for damage feedback
         private GameObject backgroundObj;
         private List<GameObject> foundAnimalObjects = new List<GameObject>();
 
@@ -104,8 +111,9 @@ namespace AdvancedCreatureDigseum
 
             // Instructions
             TextMeshProUGUI instructions = CreateText(canvasObj.transform, new Vector2(-10, navY - 170),
-                "Click to reveal fog\n" +
-                "Find hidden animals!\n\n" +
+                "Click to dig tiles\n" +
+                "Harder tiles need more\n" +
+                "clicks to reveal!\n\n" +
                 "R: Refresh biome\n" +
                 "Q/E: Change biome\n" +
                 "B: Buy biome\n\n" +
@@ -346,6 +354,12 @@ namespace AdvancedCreatureDigseum
             currentBiome = BiomeDatabase.Biomes[currentBiomeIndex];
             mainCamera.backgroundColor = currentBiome.BackgroundColor;
 
+            // Calculate grid size based on biome index (scales up with progression)
+            // Biome 0: base size, Biome 9: nearly double
+            float sizeMultiplier = 1f + currentBiomeIndex * 0.12f;
+            gridWidth = Mathf.RoundToInt(baseGridWidth * sizeMultiplier);
+            gridHeight = Mathf.RoundToInt(baseGridHeight * sizeMultiplier);
+
             // Reset energy to max
             GameData.CurrentEnergy = GameData.MaxEnergy;
 
@@ -366,15 +380,22 @@ namespace AdvancedCreatureDigseum
             bgSr.sprite = Sprite.Create(bgTex, new Rect(0, 0, bgTex.width, bgTex.height), new Vector2(0.5f, 0.5f), 16);
             bgSr.sortingOrder = -10;
 
-            // Initialize fog grid
+            // Initialize fog grid with health system
             revealedTiles = new bool[gridWidth, gridHeight];
+            tileHealth = new int[gridWidth, gridHeight];
+            tileMaxHealth = new int[gridWidth, gridHeight];
             fogSprites = new SpriteRenderer[gridWidth, gridHeight];
+            originalFogColors = new Color[gridWidth, gridHeight];
             hiddenAnimals = new Dictionary<Vector2Int, AnimalData>();
 
             fogParent = new GameObject("Fog");
 
             float startX = -(gridWidth - 1) * tileSize / 2f;
             float startY = -(gridHeight - 1) * tileSize / 2f;
+
+            // Calculate base tile health from biome difficulty
+            // Difficulty 1 = 1 health (1 click), Difficulty 6 = 6 health (multiple clicks)
+            int baseTileHealth = currentBiome.Difficulty;
 
             // Place hidden animals
             List<Vector2Int> animalPositions = new List<Vector2Int>();
@@ -400,7 +421,7 @@ namespace AdvancedCreatureDigseum
                 }
             }
 
-            // Create fog tiles
+            // Create fog tiles with health
             for (int x = 0; x < gridWidth; x++)
             {
                 for (int y = 0; y < gridHeight; y++)
@@ -412,9 +433,10 @@ namespace AdvancedCreatureDigseum
                     SpriteRenderer sr = fogTile.AddComponent<SpriteRenderer>();
                     Texture2D fogTex = new Texture2D(16, 16);
                     Color[] fogPixels = new Color[256];
+                    Color baseFogColor = currentBiome.FogColor * Random.Range(0.9f, 1.1f);
                     for (int i = 0; i < 256; i++)
                     {
-                        fogPixels[i] = currentBiome.FogColor * Random.Range(0.9f, 1.1f);
+                        fogPixels[i] = baseFogColor;
                     }
                     fogTex.SetPixels(fogPixels);
                     fogTex.Apply();
@@ -423,7 +445,19 @@ namespace AdvancedCreatureDigseum
                     sr.sortingOrder = 1;
 
                     fogSprites[x, y] = sr;
+                    originalFogColors[x, y] = baseFogColor;
                     revealedTiles[x, y] = false;
+
+                    // Set tile health - tiles with animals have bonus health
+                    Vector2Int pos = new Vector2Int(x, y);
+                    int health = baseTileHealth;
+                    if (hiddenAnimals.ContainsKey(pos))
+                    {
+                        // Animals get extra health based on rarity
+                        health += hiddenAnimals[pos].Rarity;
+                    }
+                    tileHealth[x, y] = health;
+                    tileMaxHealth[x, y] = health;
                 }
             }
 
@@ -620,8 +654,8 @@ namespace AdvancedCreatureDigseum
             if (gridX < 0 || gridX >= gridWidth || gridY < 0 || gridY >= gridHeight)
                 return;
 
-            // Check energy
-            int energyCost = currentBiome.Difficulty * 5;
+            // Check energy - base cost scaled by difficulty
+            int energyCost = 5 + currentBiome.Difficulty * 2;
             if (GameData.CurrentEnergy < energyCost)
             {
                 ShowFeedback("Not enough energy! Press R to refresh biome.", Color.red);
@@ -630,13 +664,17 @@ namespace AdvancedCreatureDigseum
 
             GameData.CurrentEnergy -= energyCost;
 
-            // Reveal tiles based on radius and power
+            // Deal damage to tiles based on radius - spread damage system
+            // Center tile takes full DigPower, surrounding tiles take reduced damage
             int revealed = 0;
+            int damaged = 0;
+
             for (int dx = -GameData.DigRadius; dx <= GameData.DigRadius; dx++)
             {
                 for (int dy = -GameData.DigRadius; dy <= GameData.DigRadius; dy++)
                 {
-                    if (dx * dx + dy * dy <= GameData.DigRadius * GameData.DigRadius)
+                    float distSq = dx * dx + dy * dy;
+                    if (distSq <= GameData.DigRadius * GameData.DigRadius)
                     {
                         int tx = gridX + dx;
                         int ty = gridY + dy;
@@ -645,13 +683,65 @@ namespace AdvancedCreatureDigseum
                         {
                             if (!revealedTiles[tx, ty])
                             {
-                                RevealTile(tx, ty);
-                                revealed++;
+                                // Calculate damage based on distance from center
+                                // Center (0,0) = full damage, edges = reduced damage
+                                float dist = Mathf.Sqrt(distSq);
+                                float damageMultiplier = 1f - (dist / (GameData.DigRadius + 1f)) * 0.7f;
+                                int damage = Mathf.Max(1, Mathf.RoundToInt(GameData.DigPower * damageMultiplier));
+
+                                // Apply damage
+                                tileHealth[tx, ty] -= damage;
+                                damaged++;
+
+                                if (tileHealth[tx, ty] <= 0)
+                                {
+                                    // Tile is destroyed - reveal it
+                                    RevealTile(tx, ty);
+                                    revealed++;
+                                }
+                                else
+                                {
+                                    // Tile is damaged but not destroyed - show visual feedback
+                                    UpdateTileDamageVisual(tx, ty);
+                                }
                             }
                         }
                     }
                 }
             }
+
+            // Show damage feedback if no tiles were revealed but some were damaged
+            if (revealed == 0 && damaged > 0)
+            {
+                int centerHealth = tileHealth[gridX, gridY];
+                if (centerHealth > 0)
+                {
+                    ShowFeedback($"Digging... ({centerHealth} HP left)", new Color(1f, 0.8f, 0.4f));
+                }
+            }
+        }
+
+        void UpdateTileDamageVisual(int x, int y)
+        {
+            if (fogSprites[x, y] == null) return;
+
+            // Calculate damage percentage
+            float healthPercent = (float)tileHealth[x, y] / tileMaxHealth[x, y];
+
+            // Darken and crack the tile as it takes damage
+            Color originalColor = originalFogColors[x, y];
+
+            // Mix between original color and a cracked/dark version
+            Color damagedColor = Color.Lerp(
+                new Color(0.3f, 0.2f, 0.1f, originalColor.a), // Dark cracked color
+                originalColor,
+                healthPercent
+            );
+
+            // Also reduce alpha slightly as damage increases
+            damagedColor.a = originalColor.a * (0.5f + healthPercent * 0.5f);
+
+            fogSprites[x, y].color = damagedColor;
         }
 
         void RevealTile(int x, int y)
@@ -741,6 +831,8 @@ namespace AdvancedCreatureDigseum
                 string status = "";
                 if (!GameData.UnlockedBiomes.Contains(currentBiomeIndex))
                     status = $" [LOCKED - {currentBiome.UnlockCost}g]";
+                else
+                    status = $" [{gridWidth}x{gridHeight}, HP:{currentBiome.Difficulty}]";
                 biomeText.text = $"Biome: {currentBiome.Name}{status}";
             }
 

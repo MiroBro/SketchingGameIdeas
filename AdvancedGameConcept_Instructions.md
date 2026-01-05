@@ -51,3 +51,11 @@ FURHTER REFINEMENT 5:
 - Additionally in Digseum the first level has quite a small area where you look for animals, and each level gets larger. Can you do the same for this game?
 - Additionally in digseum the first dig-power is only ONE tile strong. You have to upgrade the dig-power area so at first it ALSO hits the tile above and below (but not as hard as the tile you click). Then you upgrade so the area ALSO hits left and right of you, then you upgrade the diagonals, and then further etc. Can you make a similair system?
 - In the Fusion Lab one can have so many hybrids that they are all no longer visible. Can you make both the base aniamls and fusions available into a scrollable list (with images so you can see which you're picking)?
+
+FURTHER REFINEMENT 6:
+- The animals found on later levels should be worth more by default.
+- When one finds more animals of the same type I want that to upgrade its "parts" values automatically. So even if one uses them to makes hybrids and then one doesn't have a single one, that value upgrade is still in use because one has historically found more if that makes sense. So the bonus isn't reliant on how many of the base animals you have available RIGHT NOW, it's dependent on how many of them you have HISTORICALLY found.
+- Can you also make it so all decorations can have 3 different styles I can select?
+
+Question - I'd love to get your thoughts on this:
+- There's something a little unsatisfying about having SO many animals available for fusion (because they are so easy to collect, so in a way it gets TOO easy). But at the same time it is very satisfying to collect a lot of them, so I want to preserve that. Do you have any proposals on how one can make this nice with a game mechanic tweak/change or a feature addition? Maybe one can refine base animals, using like 10x of them into a "hybridable" animal that one can fuse (and you can't just fuse base animals as they are) or something? Or do you have any other cool proposal to make it more satisfying for players?
