@@ -673,15 +673,15 @@ namespace AdvancedCreatureDigseum
             return 1; // Need 1 for 1★
         }
 
-        // Get string representation of stars (★☆)
+        // Get string representation of stars (using ASCII-friendly characters)
         public static string GetStarString(int starLevel)
         {
             switch (starLevel)
             {
-                case 1: return "★☆☆";
-                case 2: return "★★☆";
-                case 3: return "★★★";
-                default: return "☆☆☆";
+                case 1: return "[*oo]";
+                case 2: return "[**o]";
+                case 3: return "[***]";
+                default: return "[ooo]";
             }
         }
 

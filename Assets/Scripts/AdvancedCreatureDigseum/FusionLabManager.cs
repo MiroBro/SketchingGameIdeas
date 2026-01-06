@@ -107,7 +107,7 @@ namespace AdvancedCreatureDigseum
 
             // Instructions
             TextMeshProUGUI instructions = CreateText(canvasObj.transform, new Vector2(-10, navY - 170),
-                "<color=#ff0>★★★ = Fuseable!</color>\n" +
+                "<color=#ff0>[***] = Fuseable!</color>\n" +
                 "Find 6 of each animal\n" +
                 "to unlock fusion.\n\n" +
                 "SPACE: Fuse pair\n" +
@@ -626,7 +626,7 @@ namespace AdvancedCreatureDigseum
                 int needed = GameData.GetFindsForNextStar(animal.Id);
                 if (starLevel < 3)
                 {
-                    ShowFeedback($"{animal.Name} needs ★★★ to fuse! (Find {6 - GameData.GetHistoricalFindCount(animal.Id)} more)", Color.red);
+                    ShowFeedback($"{animal.Name} needs [***] to fuse! (Find {6 - GameData.GetHistoricalFindCount(animal.Id)} more)", Color.red);
                 }
                 return;
             }

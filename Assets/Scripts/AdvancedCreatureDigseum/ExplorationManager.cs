@@ -294,7 +294,7 @@ namespace AdvancedCreatureDigseum
                         else
                         {
                             int needed = GameData.GetFindsForNextStar(kvp.Key);
-                            summary += $" <color=#aaa>({needed} to next ★)</color>";
+                            summary += $" <color=#aaa>({needed} to next *)</color>";
                         }
                         summary += "\n";
                     }
@@ -980,7 +980,7 @@ namespace AdvancedCreatureDigseum
             if (newStarLevel < 3)
             {
                 int needed = GameData.GetFindsForNextStar(animal.Id);
-                starProgress = $" ({needed} more for next ★)";
+                starProgress = $" ({needed} more for next *)";
             }
             else
             {
@@ -993,11 +993,11 @@ namespace AdvancedCreatureDigseum
                 // Star upgrade celebration!
                 if (newStarLevel == 3)
                 {
-                    ShowFeedback($"★★★ {animal.Name} is now FUSEABLE! ★★★ (+{goldReward}g)", new Color(1f, 0.8f, 0.2f));
+                    ShowFeedback($"[***] {animal.Name} is now FUSEABLE! [***] (+{goldReward}g)", new Color(1f, 0.8f, 0.2f));
                 }
                 else
                 {
-                    ShowFeedback($"★ {animal.Name} upgraded to {stars}! (+{goldReward}g){starProgress}", new Color(0.5f, 1f, 0.5f));
+                    ShowFeedback($"* {animal.Name} upgraded to {stars}! (+{goldReward}g){starProgress}", new Color(0.5f, 1f, 0.5f));
                 }
             }
             else
