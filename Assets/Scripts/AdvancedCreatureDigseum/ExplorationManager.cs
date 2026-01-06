@@ -35,9 +35,10 @@ namespace AdvancedCreatureDigseum
         private float feedbackTimer;
         private Transform canvasTransform;
 
-        // Refresh panel (shows when out of energy)
+        // Refresh panel (shows when out of energy or level complete)
         private GameObject refreshPanel;
         private TextMeshProUGUI refreshSummaryText;
+        private TextMeshProUGUI refreshTitleText;
         private bool refreshPanelVisible = false;
 
         // Fog visual
@@ -171,11 +172,11 @@ namespace AdvancedCreatureDigseum
             panelImg.color = new Color(0.15f, 0.12f, 0.2f, 0.95f);
 
             // Title
-            TextMeshProUGUI titleText = CreatePanelText(refreshPanel.transform, new Vector2(0, 140), "Energy Depleted!");
-            titleText.fontSize = 28;
-            titleText.color = new Color(1f, 0.8f, 0.3f);
-            titleText.alignment = TextAlignmentOptions.Center;
-            RectTransform titleRect = titleText.GetComponent<RectTransform>();
+            refreshTitleText = CreatePanelText(refreshPanel.transform, new Vector2(0, 140), "Energy Depleted!");
+            refreshTitleText.fontSize = 28;
+            refreshTitleText.color = new Color(1f, 0.8f, 0.3f);
+            refreshTitleText.alignment = TextAlignmentOptions.Center;
+            RectTransform titleRect = refreshTitleText.GetComponent<RectTransform>();
             titleRect.anchorMin = new Vector2(0.5f, 0.5f);
             titleRect.anchorMax = new Vector2(0.5f, 0.5f);
             titleRect.pivot = new Vector2(0.5f, 0.5f);
@@ -254,10 +255,27 @@ namespace AdvancedCreatureDigseum
 
         void ShowRefreshPanel()
         {
+            ShowRefreshPanelWithTitle("Energy Depleted!", new Color(1f, 0.8f, 0.3f));
+        }
+
+        void ShowLevelComplete()
+        {
+            ShowRefreshPanelWithTitle("Level Complete!", new Color(0.3f, 1f, 0.5f));
+        }
+
+        void ShowRefreshPanelWithTitle(string title, Color titleColor)
+        {
             if (refreshPanel == null || refreshPanelVisible) return;
 
             refreshPanelVisible = true;
             refreshPanel.SetActive(true);
+
+            // Set the title
+            if (refreshTitleText != null)
+            {
+                refreshTitleText.text = title;
+                refreshTitleText.color = titleColor;
+            }
 
             // Build summary of animals found this run
             string summary = "";
@@ -567,14 +585,21 @@ namespace AdvancedCreatureDigseum
             // Difficulty 1 = 1 health (1 click), Difficulty 6 = 6 health (multiple clicks)
             int baseTileHealth = currentBiome.Difficulty;
 
-            // Place hidden animals
+            // Place hidden animals - count scales with biome level
+            // Biome 0 (level 1): 3 animals, Biome 9 (level 10): ~15 animals
+            int biomeLevel = currentBiomeIndex + 1;
+            int baseAnimalCount = 2 + biomeLevel; // 3, 4, 5, 6, 7, 8, 9, 10, 11, 12
+
             List<Vector2Int> animalPositions = new List<Vector2Int>();
-            foreach (var animal in currentBiome.Animals)
+            int animalsPlaced = 0;
+
+            // Keep placing animals until we reach the target count
+            while (animalsPlaced < baseAnimalCount)
             {
-                // Each animal appears 1-3 times based on rarity
-                int count = 4 - animal.Rarity;
-                for (int c = 0; c < count; c++)
+                foreach (var animal in currentBiome.Animals)
                 {
+                    if (animalsPlaced >= baseAnimalCount) break;
+
                     Vector2Int pos;
                     int attempts = 0;
                     do
@@ -587,6 +612,7 @@ namespace AdvancedCreatureDigseum
                     {
                         animalPositions.Add(pos);
                         hiddenAnimals[pos] = animal;
+                        animalsPlaced++;
                     }
                 }
             }
@@ -936,6 +962,12 @@ namespace AdvancedCreatureDigseum
                 AnimalData animal = hiddenAnimals[pos];
                 FoundAnimal(animal, x, y);
                 hiddenAnimals.Remove(pos);
+
+                // Check if all animals have been found - auto-complete level
+                if (hiddenAnimals.Count == 0)
+                {
+                    ShowLevelComplete();
+                }
             }
         }
 
