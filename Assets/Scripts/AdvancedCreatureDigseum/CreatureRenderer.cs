@@ -203,5 +203,18 @@ namespace AdvancedCreatureDigseum
                 pixels[y * size + x] = color;
             }
         }
+
+        // Set a color tint on the sprite (for graying out non-fuseable animals, etc.)
+        public void SetTint(Color tint)
+        {
+            if (spriteRenderer == null)
+            {
+                spriteRenderer = GetComponent<SpriteRenderer>();
+            }
+            if (spriteRenderer != null)
+            {
+                spriteRenderer.color = tint;
+            }
+        }
     }
 }

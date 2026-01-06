@@ -284,18 +284,23 @@ namespace AdvancedCreatureDigseum
                     AnimalData animal = AnimalDatabase.GetAnimal(kvp.Key);
                     if (animal != null)
                     {
-                        int historicalCount = GameData.GetHistoricalFindCount(kvp.Key);
-                        int bonusPercent = historicalCount * 10;
-                        summary += $"{animal.Name} x{kvp.Value}";
-                        if (historicalCount > 1)
+                        int starLevel = GameData.GetAnimalStarLevel(kvp.Key);
+                        string stars = GameData.GetStarString(starLevel);
+                        summary += $"{stars} {animal.Name} x{kvp.Value}";
+                        if (starLevel >= 3)
                         {
-                            summary += $" <color=#ff8>(+{bonusPercent}% hybrid bonus)</color>";
+                            summary += $" <color=#ff0>(Fuseable!)</color>";
+                        }
+                        else
+                        {
+                            int needed = GameData.GetFindsForNextStar(kvp.Key);
+                            summary += $" <color=#aaa>({needed} to next ★)</color>";
                         }
                         summary += "\n";
                     }
                 }
 
-                summary += $"\n<color=#aaf>Historical finds boost hybrid values!</color>";
+                summary += $"\n<color=#aaf>Find 6 of each animal to unlock fusion!</color>";
             }
 
             refreshSummaryText.text = summary;
@@ -964,11 +969,41 @@ namespace AdvancedCreatureDigseum
             int goldReward = 5 + biomeBonus + rarityBonus;
             GameData.Gold += goldReward;
 
-            // Track historical finds for hybrid value bonuses
+            // Track historical finds for star progression
+            int oldStarLevel = GameData.GetAnimalStarLevel(animal.Id);
             GameData.RecordHistoricalFind(animal.Id);
+            int newStarLevel = GameData.GetAnimalStarLevel(animal.Id);
 
-            int timesFound = GameData.GetHistoricalFindCount(animal.Id);
-            ShowFeedback($"Found {animal.Name}! (+{goldReward}g) [x{timesFound} total]", Color.yellow);
+            // Build feedback message with star info
+            string stars = GameData.GetStarString(newStarLevel);
+            string starProgress = "";
+            if (newStarLevel < 3)
+            {
+                int needed = GameData.GetFindsForNextStar(animal.Id);
+                starProgress = $" ({needed} more for next ★)";
+            }
+            else
+            {
+                starProgress = " <color=#ff0>FUSEABLE!</color>";
+            }
+
+            // Check if star level increased
+            if (newStarLevel > oldStarLevel)
+            {
+                // Star upgrade celebration!
+                if (newStarLevel == 3)
+                {
+                    ShowFeedback($"★★★ {animal.Name} is now FUSEABLE! ★★★ (+{goldReward}g)", new Color(1f, 0.8f, 0.2f));
+                }
+                else
+                {
+                    ShowFeedback($"★ {animal.Name} upgraded to {stars}! (+{goldReward}g){starProgress}", new Color(0.5f, 1f, 0.5f));
+                }
+            }
+            else
+            {
+                ShowFeedback($"Found {animal.Name}! {stars} (+{goldReward}g){starProgress}", Color.yellow);
+            }
 
             // Auto-save when finding animals
             GameData.SaveGame();

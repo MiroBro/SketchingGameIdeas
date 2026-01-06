@@ -107,10 +107,11 @@ namespace AdvancedCreatureDigseum
 
             // Instructions
             TextMeshProUGUI instructions = CreateText(canvasObj.transform, new Vector2(-10, navY - 170),
-                "Click creatures to select\n" +
+                "<color=#ff0>★★★ = Fuseable!</color>\n" +
+                "Find 6 of each animal\n" +
+                "to unlock fusion.\n\n" +
                 "SPACE: Fuse pair\n" +
                 "C: Clear selection\n\n" +
-                "Click arrows or use:\n" +
                 "A/D: Animal pages\n" +
                 "W/S: Hybrid pages");
             RectTransform instRect = instructions.GetComponent<RectTransform>();
@@ -469,7 +470,28 @@ namespace AdvancedCreatureDigseum
                 handler.Animal = animal;
                 handler.Manager = this;
 
-                // Show count badge
+                // Check star level for fusion eligibility
+                int starLevel = GameData.GetAnimalStarLevel(animal.Id);
+                bool canFuse = starLevel >= 3;
+
+                // Gray out non-fuseable animals
+                if (!canFuse)
+                {
+                    renderer.SetTint(new Color(0.5f, 0.5f, 0.5f, 0.7f));
+                }
+
+                // Show star badge (top-left)
+                GameObject starObj = new GameObject("Stars");
+                starObj.transform.parent = animalObj.transform;
+                starObj.transform.localPosition = new Vector3(-0.5f, 0.8f, 0);
+                TextMeshPro starText = starObj.AddComponent<TextMeshPro>();
+                starText.text = GameData.GetStarString(starLevel);
+                starText.fontSize = 1.8f;
+                starText.alignment = TextAlignmentOptions.Center;
+                starText.sortingOrder = 10;
+                starText.color = canFuse ? new Color(1f, 0.9f, 0.3f) : new Color(0.6f, 0.6f, 0.6f);
+
+                // Show count badge (top-right)
                 GameObject countObj = new GameObject("Count");
                 countObj.transform.parent = animalObj.transform;
                 countObj.transform.localPosition = new Vector3(0.6f, 0.7f, 0);
@@ -480,12 +502,12 @@ namespace AdvancedCreatureDigseum
                 countText.sortingOrder = 10;
                 countText.color = new Color(1f, 1f, 0.5f);
 
-                // Show name label below
+                // Show name label below (with fusion status)
                 GameObject nameObj = new GameObject("Name");
                 nameObj.transform.parent = animalObj.transform;
                 nameObj.transform.localPosition = new Vector3(0, -1f, 0);
                 TextMeshPro nameText = nameObj.AddComponent<TextMeshPro>();
-                nameText.text = animal.Name;
+                nameText.text = canFuse ? animal.Name : $"<color=#888>{animal.Name}</color>";
                 nameText.fontSize = 1.5f;
                 nameText.alignment = TextAlignmentOptions.Center;
                 nameText.sortingOrder = 10;
@@ -597,6 +619,18 @@ namespace AdvancedCreatureDigseum
 
         public void SelectAnimal(AnimalData animal)
         {
+            // Check if animal has 3 stars (required for fusion)
+            if (!GameData.CanAnimalFuse(animal.Id))
+            {
+                int starLevel = GameData.GetAnimalStarLevel(animal.Id);
+                int needed = GameData.GetFindsForNextStar(animal.Id);
+                if (starLevel < 3)
+                {
+                    ShowFeedback($"{animal.Name} needs ★★★ to fuse! (Find {6 - GameData.GetHistoricalFindCount(animal.Id)} more)", Color.red);
+                }
+                return;
+            }
+
             if (!GameData.CanUseAnimal(animal.Id))
             {
                 ShowFeedback($"No more {animal.Name} available!", Color.red);

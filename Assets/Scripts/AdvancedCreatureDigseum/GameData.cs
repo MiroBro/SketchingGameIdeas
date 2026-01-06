@@ -646,6 +646,45 @@ namespace AdvancedCreatureDigseum
             return HistoricalFinds.ContainsKey(animalId) ? HistoricalFinds[animalId] : 0;
         }
 
+        // Get star level for an animal (1-3 stars based on historical finds)
+        // 1-2 finds = 1★, 3-5 finds = 2★, 6+ finds = 3★
+        public static int GetAnimalStarLevel(string animalId)
+        {
+            int finds = GetHistoricalFindCount(animalId);
+            if (finds >= 6) return 3;
+            if (finds >= 3) return 2;
+            if (finds >= 1) return 1;
+            return 0; // Never found
+        }
+
+        // Check if animal can be used for fusion (requires 3 stars)
+        public static bool CanAnimalFuse(string animalId)
+        {
+            return GetAnimalStarLevel(animalId) >= 3;
+        }
+
+        // Get finds needed for next star level
+        public static int GetFindsForNextStar(string animalId)
+        {
+            int finds = GetHistoricalFindCount(animalId);
+            if (finds >= 6) return 0; // Already max
+            if (finds >= 3) return 6 - finds; // Need 6 for 3★
+            if (finds >= 1) return 3 - finds; // Need 3 for 2★
+            return 1; // Need 1 for 1★
+        }
+
+        // Get string representation of stars (★☆)
+        public static string GetStarString(int starLevel)
+        {
+            switch (starLevel)
+            {
+                case 1: return "★☆☆";
+                case 2: return "★★☆";
+                case 3: return "★★★";
+                default: return "☆☆☆";
+            }
+        }
+
         // Check if a hybrid is available for fusion (not placed in any pasture)
         public static bool IsHybridAvailableForFusion(string hybridId)
         {
