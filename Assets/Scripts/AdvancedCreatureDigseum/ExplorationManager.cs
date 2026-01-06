@@ -24,6 +24,7 @@ namespace AdvancedCreatureDigseum
         private int[,] tileHealth;  // Health remaining on each tile
         private int[,] tileMaxHealth; // Max health for visual feedback
         private Dictionary<Vector2Int, AnimalData> hiddenAnimals;
+        private Dictionary<Vector2Int, int> hiddenCrystals; // Value is crystal amount
         private Camera mainCamera;
 
         // UI
@@ -47,9 +48,11 @@ namespace AdvancedCreatureDigseum
         private Color[,] originalFogColors; // Store original colors for damage feedback
         private GameObject backgroundObj;
         private List<GameObject> foundAnimalObjects = new List<GameObject>();
+        private List<GameObject> foundCrystalObjects = new List<GameObject>();
 
-        // Animals found this session
+        // Animals and crystals found this session
         private List<string> animalsFoundThisRun = new List<string>();
+        private int crystalsFoundThisRun = 0;
 
         // Autosave
         private float saveTimer = 0f;
@@ -268,29 +271,19 @@ namespace AdvancedCreatureDigseum
 
         void AwardPrestigeCrystals(bool levelComplete)
         {
-            // Prestige crystals based on biome level
-            // Biome 0: 0, Biome 1: 1, Biome 2: 2, Biome 3: 3, etc.
-            int baseCrystals = currentBiomeIndex;
-
-            // Bonus for completing the level (finding all animals)
-            if (levelComplete && baseCrystals > 0)
+            // Bonus crystal for completing the level (finding all animals)
+            // Crystals are now mainly found during digging, this is just a completion bonus
+            if (levelComplete && currentBiomeIndex > 0)
             {
-                baseCrystals += 1;
-            }
+                int bonusCrystals = 1;
 
-            if (baseCrystals > 0)
-            {
                 // Apply prestige currency bonus
                 float bonusMultiplier = 1f + (GameData.PrestigeCurrencyBonus / 100f);
-                int finalCrystals = Mathf.RoundToInt(baseCrystals * bonusMultiplier);
+                int finalCrystals = Mathf.Max(1, Mathf.RoundToInt(bonusCrystals * bonusMultiplier));
 
                 GameData.PrestigePoints += finalCrystals;
+                crystalsFoundThisRun += finalCrystals;
                 GameData.SaveGame();
-
-                if (finalCrystals > 0)
-                {
-                    ShowFeedback($"+{finalCrystals} Prestige Crystals!", new Color(0.6f, 0.8f, 1f));
-                }
             }
         }
 
@@ -311,13 +304,18 @@ namespace AdvancedCreatureDigseum
             // Build summary of animals found this run
             string summary = "";
 
-            if (animalsFoundThisRun.Count == 0)
+            if (animalsFoundThisRun.Count == 0 && crystalsFoundThisRun == 0)
             {
                 summary = "No animals found this run.\n\nKeep exploring to discover creatures!";
             }
             else
             {
-                summary = $"<color=#8f8>Animals Found This Run: {animalsFoundThisRun.Count}</color>\n\n";
+                summary = $"<color=#8f8>Animals Found: {animalsFoundThisRun.Count}</color>";
+                if (crystalsFoundThisRun > 0)
+                {
+                    summary += $"  |  <color=#8cf>Crystals: {crystalsFoundThisRun}</color>";
+                }
+                summary += "\n\n";
 
                 // Count unique animals and their bonuses
                 Dictionary<string, int> foundCounts = new Dictionary<string, int>();
@@ -569,6 +567,14 @@ namespace AdvancedCreatureDigseum
                 if (obj != null) Destroy(obj);
             }
             foundAnimalObjects.Clear();
+            foreach (var obj in foundCrystalObjects)
+            {
+                if (obj != null) Destroy(obj);
+            }
+            foundCrystalObjects.Clear();
+
+            // Reset session tracking
+            crystalsFoundThisRun = 0;
 
             currentBiome = BiomeDatabase.Biomes[currentBiomeIndex];
             mainCamera.backgroundColor = currentBiome.BackgroundColor;
@@ -606,6 +612,7 @@ namespace AdvancedCreatureDigseum
             fogSprites = new SpriteRenderer[gridWidth, gridHeight];
             originalFogColors = new Color[gridWidth, gridHeight];
             hiddenAnimals = new Dictionary<Vector2Int, AnimalData>();
+            hiddenCrystals = new Dictionary<Vector2Int, int>();
 
             fogParent = new GameObject("Fog");
 
@@ -644,6 +651,31 @@ namespace AdvancedCreatureDigseum
                         animalPositions.Add(pos);
                         hiddenAnimals[pos] = animal;
                         animalsPlaced++;
+                    }
+                }
+            }
+
+            // Place hidden prestige crystals (only in biomes 1+)
+            // Biome 1: 1 crystal, Biome 2: 2 crystals, etc.
+            if (currentBiomeIndex > 0)
+            {
+                int crystalCount = currentBiomeIndex;
+                List<Vector2Int> usedPositions = new List<Vector2Int>(animalPositions);
+
+                for (int i = 0; i < crystalCount; i++)
+                {
+                    Vector2Int pos;
+                    int attempts = 0;
+                    do
+                    {
+                        pos = new Vector2Int(Random.Range(0, gridWidth), Random.Range(0, gridHeight));
+                        attempts++;
+                    } while (usedPositions.Contains(pos) && attempts < 100);
+
+                    if (!usedPositions.Contains(pos))
+                    {
+                        usedPositions.Add(pos);
+                        hiddenCrystals[pos] = 1; // Each crystal spot gives 1 crystal
                     }
                 }
             }
@@ -1000,6 +1032,74 @@ namespace AdvancedCreatureDigseum
                     ShowLevelComplete();
                 }
             }
+
+            // Check for prestige crystal
+            if (hiddenCrystals.ContainsKey(pos))
+            {
+                int crystalAmount = hiddenCrystals[pos];
+                FoundCrystal(crystalAmount, x, y);
+                hiddenCrystals.Remove(pos);
+            }
+        }
+
+        void FoundCrystal(int amount, int x, int y)
+        {
+            // Apply prestige currency bonus
+            float bonusMultiplier = 1f + (GameData.PrestigeCurrencyBonus / 100f);
+            int finalAmount = Mathf.Max(1, Mathf.RoundToInt(amount * bonusMultiplier));
+
+            GameData.PrestigePoints += finalAmount;
+            crystalsFoundThisRun += finalAmount;
+
+            // Create visual - a shiny crystal sprite
+            float startX = -(gridWidth - 1) * tileSize / 2f;
+            float startY = -(gridHeight - 1) * tileSize / 2f;
+
+            GameObject crystalObj = new GameObject("Found_Crystal");
+            crystalObj.transform.position = new Vector3(startX + x * tileSize, startY + y * tileSize, 0);
+            crystalObj.transform.localScale = Vector3.one * 0.4f;
+
+            // Create crystal sprite (diamond shape with cyan/purple color)
+            SpriteRenderer sr = crystalObj.AddComponent<SpriteRenderer>();
+            Texture2D tex = new Texture2D(16, 16);
+            Color[] pixels = new Color[256];
+            Color crystalColor = new Color(0.6f, 0.8f, 1f); // Light blue/cyan
+            Color crystalHighlight = new Color(0.9f, 0.7f, 1f); // Purple highlight
+
+            // Draw a diamond shape
+            for (int py = 0; py < 16; py++)
+            {
+                for (int px = 0; px < 16; px++)
+                {
+                    int cx = px - 8;
+                    int cy = py - 8;
+                    // Diamond shape: |x| + |y| <= size
+                    if (Mathf.Abs(cx) + Mathf.Abs(cy) <= 6)
+                    {
+                        // Gradient for 3D effect
+                        float brightness = 1f - (Mathf.Abs(cx) + Mathf.Abs(cy)) / 12f;
+                        if (cx < 0 && cy < 0) // Highlight corner
+                            pixels[py * 16 + px] = Color.Lerp(crystalColor, crystalHighlight, brightness);
+                        else
+                            pixels[py * 16 + px] = crystalColor * brightness;
+                        pixels[py * 16 + px].a = 1f;
+                    }
+                    else
+                    {
+                        pixels[py * 16 + px] = Color.clear;
+                    }
+                }
+            }
+            tex.SetPixels(pixels);
+            tex.Apply();
+            tex.filterMode = FilterMode.Point;
+            sr.sprite = Sprite.Create(tex, new Rect(0, 0, 16, 16), new Vector2(0.5f, 0.5f), 32);
+            sr.sortingOrder = 5;
+
+            foundCrystalObjects.Add(crystalObj);
+
+            // Show feedback
+            ShowFeedback($"+{finalAmount} Prestige Crystal!", new Color(0.6f, 0.8f, 1f));
         }
 
         void FoundAnimal(AnimalData animal, int x, int y)

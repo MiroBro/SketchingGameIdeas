@@ -111,7 +111,9 @@ namespace AdvancedCreatureDigseum
             CreatePrestigeButton(canvasObj.transform);
 
             // Create scroll view for upgrades
+            Debug.Log("PrestigeManager: About to call CreateUpgradeScrollView");
             CreateUpgradeScrollView(canvasObj.transform);
+            Debug.Log($"PrestigeManager: After CreateUpgradeScrollView, scrollContent = {scrollContent}");
 
             // Populate upgrades
             PopulateUpgrades();
@@ -165,6 +167,8 @@ namespace AdvancedCreatureDigseum
 
         void CreateUpgradeScrollView(Transform parent)
         {
+            Debug.Log("PrestigeManager: Creating scroll view...");
+
             // Scroll view container
             GameObject scrollObj = new GameObject("ScrollView");
             scrollObj.transform.SetParent(parent);
@@ -202,7 +206,6 @@ namespace AdvancedCreatureDigseum
             // Content
             GameObject content = new GameObject("Content");
             content.transform.SetParent(viewport.transform);
-            scrollContent = content.transform;
 
             RectTransform contentRect = content.AddComponent<RectTransform>();
             contentRect.anchorMin = new Vector2(0, 1);
@@ -211,6 +214,10 @@ namespace AdvancedCreatureDigseum
             contentRect.anchoredPosition = Vector2.zero;
             contentRect.sizeDelta = new Vector2(0, 0);
             contentRect.localScale = Vector3.one;
+
+            // Assign scrollContent AFTER adding RectTransform (which replaces Transform)
+            scrollContent = content.transform;
+            Debug.Log($"PrestigeManager: scrollContent assigned = {scrollContent != null}");
 
             VerticalLayoutGroup layout = content.AddComponent<VerticalLayoutGroup>();
             layout.spacing = 10;
@@ -225,6 +232,8 @@ namespace AdvancedCreatureDigseum
             fitter.verticalFit = ContentSizeFitter.FitMode.PreferredSize;
 
             scroll.content = contentRect;
+
+            Debug.Log($"PrestigeManager: CreateUpgradeScrollView complete, scrollContent = {scrollContent}");
         }
 
         void PopulateUpgrades()
@@ -243,6 +252,15 @@ namespace AdvancedCreatureDigseum
             if (allUpgrades == null || allUpgrades.Count == 0)
             {
                 Debug.LogError("PrestigeDatabase upgrades is null or empty!");
+                return;
+            }
+
+            Debug.Log($"PrestigeManager: Found {allUpgrades.Count} upgrades to display");
+
+            // Verify scroll content exists
+            if (scrollContent == null)
+            {
+                Debug.LogError("PrestigeManager: scrollContent is null!");
                 return;
             }
 
@@ -271,9 +289,12 @@ namespace AdvancedCreatureDigseum
             }
 
             // Create category sections
+            int totalCreated = 0;
             foreach (var cat in categories)
             {
                 if (grouped[cat].Count == 0) continue;
+
+                Debug.Log($"PrestigeManager: Creating category '{cat}' with {grouped[cat].Count} upgrades");
 
                 // Category header
                 CreateCategoryHeader(cat);
@@ -282,24 +303,50 @@ namespace AdvancedCreatureDigseum
                 foreach (var upgrade in grouped[cat])
                 {
                     CreateUpgradeButton(upgrade);
+                    totalCreated++;
                 }
             }
+
+            Debug.Log($"PrestigeManager: Total buttons created: {totalCreated}, scrollContent children: {scrollContent.childCount}");
         }
 
         void CreateCategoryHeader(string category)
         {
             GameObject headerObj = new GameObject($"Header_{category}");
-            headerObj.transform.SetParent(scrollContent);
+            headerObj.transform.SetParent(scrollContent, false);
 
             RectTransform rect = headerObj.AddComponent<RectTransform>();
-            rect.sizeDelta = new Vector2(0, 30);
+            rect.sizeDelta = new Vector2(600, 30);
             rect.localScale = Vector3.one;
 
-            TextMeshProUGUI text = headerObj.AddComponent<TextMeshProUGUI>();
+            // Add LayoutElement for proper sizing in VerticalLayoutGroup
+            LayoutElement layoutElement = headerObj.AddComponent<LayoutElement>();
+            layoutElement.minHeight = 30;
+            layoutElement.preferredHeight = 30;
+            layoutElement.minWidth = 600;
+            layoutElement.preferredWidth = 600;
+            layoutElement.flexibleWidth = 1;
+
+            // Add background image for visibility
+            Image bg = headerObj.AddComponent<Image>();
+            bg.color = new Color(0.15f, 0.12f, 0.2f, 0.8f);
+
+            // Create text as child
+            GameObject textObj = new GameObject("HeaderText");
+            textObj.transform.SetParent(headerObj.transform, false);
+            RectTransform textRect = textObj.AddComponent<RectTransform>();
+            textRect.anchorMin = Vector2.zero;
+            textRect.anchorMax = Vector2.one;
+            textRect.offsetMin = Vector2.zero;
+            textRect.offsetMax = Vector2.zero;
+            textRect.localScale = Vector3.one;
+
+            TextMeshProUGUI text = textObj.AddComponent<TextMeshProUGUI>();
             text.text = $"=== {category.ToUpper()} ===";
             text.fontSize = 18;
             text.alignment = TextAlignmentOptions.Center;
             text.color = new Color(0.8f, 0.7f, 1f);
+            text.raycastTarget = false;
 
             upgradeButtons.Add(headerObj);
         }
@@ -307,11 +354,19 @@ namespace AdvancedCreatureDigseum
         void CreateUpgradeButton(PrestigeUpgrade upgrade)
         {
             GameObject btnObj = new GameObject($"Upgrade_{upgrade.Id}");
-            btnObj.transform.SetParent(scrollContent);
+            btnObj.transform.SetParent(scrollContent, false);
 
             RectTransform rect = btnObj.AddComponent<RectTransform>();
-            rect.sizeDelta = new Vector2(0, 70);
+            rect.sizeDelta = new Vector2(600, 70);
             rect.localScale = Vector3.one;
+
+            // Add LayoutElement for proper sizing in VerticalLayoutGroup
+            LayoutElement layoutElement = btnObj.AddComponent<LayoutElement>();
+            layoutElement.minHeight = 70;
+            layoutElement.preferredHeight = 70;
+            layoutElement.minWidth = 600;
+            layoutElement.preferredWidth = 600;
+            layoutElement.flexibleWidth = 1;
 
             Image img = btnObj.AddComponent<Image>();
 
@@ -337,7 +392,7 @@ namespace AdvancedCreatureDigseum
 
             // Name text
             GameObject nameObj = new GameObject("Name");
-            nameObj.transform.SetParent(btnObj.transform);
+            nameObj.transform.SetParent(btnObj.transform, false);
             RectTransform nameRect = nameObj.AddComponent<RectTransform>();
             nameRect.anchorMin = new Vector2(0, 0.5f);
             nameRect.anchorMax = new Vector2(0.7f, 1);
@@ -350,10 +405,11 @@ namespace AdvancedCreatureDigseum
             nameText.fontSize = 18;
             nameText.alignment = TextAlignmentOptions.MidlineLeft;
             nameText.color = purchased ? new Color(0.6f, 0.8f, 0.6f) : Color.white;
+            nameText.raycastTarget = false;
 
             // Description text
             GameObject descObj = new GameObject("Desc");
-            descObj.transform.SetParent(btnObj.transform);
+            descObj.transform.SetParent(btnObj.transform, false);
             RectTransform descRect = descObj.AddComponent<RectTransform>();
             descRect.anchorMin = new Vector2(0, 0);
             descRect.anchorMax = new Vector2(0.7f, 0.5f);
@@ -366,10 +422,11 @@ namespace AdvancedCreatureDigseum
             descText.fontSize = 14;
             descText.alignment = TextAlignmentOptions.MidlineLeft;
             descText.color = new Color(0.7f, 0.7f, 0.7f);
+            descText.raycastTarget = false;
 
             // Cost text
             GameObject costObj = new GameObject("Cost");
-            costObj.transform.SetParent(btnObj.transform);
+            costObj.transform.SetParent(btnObj.transform, false);
             RectTransform costRect = costObj.AddComponent<RectTransform>();
             costRect.anchorMin = new Vector2(0.7f, 0);
             costRect.anchorMax = new Vector2(1, 1);
@@ -390,6 +447,7 @@ namespace AdvancedCreatureDigseum
             }
             costText.fontSize = 20;
             costText.alignment = TextAlignmentOptions.Center;
+            costText.raycastTarget = false;
 
             upgradeButtons.Add(btnObj);
         }

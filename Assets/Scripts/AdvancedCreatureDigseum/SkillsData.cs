@@ -75,18 +75,7 @@ namespace AdvancedCreatureDigseum
                 new SkillUpgrade("energy_regen_2", "Quick Recovery", "Even faster regen", SkillType.EnergyRegen, 12000, 1, "", "energy_regen", 2),
                 new SkillUpgrade("energy_regen_3", "Quick Recovery", "Maximum regen speed", SkillType.EnergyRegen, 60000, 1, "", "energy_regen", 3),
 
-                // Decoration unlocks - early to mid game purchases
-                new SkillUpgrade("unlock_bench", "Unlock Bench", "Benches for visitors (+1 income)", SkillType.UnlockDecoration, 800, 1, "Bench"),
-                new SkillUpgrade("unlock_lamp", "Unlock Lamp", "Light up your zoo (+1 income)", SkillType.UnlockDecoration, 1200, 1, "Lamp"),
-                new SkillUpgrade("unlock_tree", "Unlock Tree", "Nature in your zoo (+2 income)", SkillType.UnlockDecoration, 2000, 1, "Tree"),
-                new SkillUpgrade("unlock_flowers", "Unlock Flowers", "Colorful flowers (+2 income)", SkillType.UnlockDecoration, 3000, 1, "Flowers"),
-                new SkillUpgrade("unlock_fountain", "Unlock Fountain", "Beautiful water feature (+5 income)", SkillType.UnlockDecoration, 10000, 1, "Fountain"),
-                new SkillUpgrade("unlock_statue", "Unlock Statue", "Impress visitors (+10 income)", SkillType.UnlockDecoration, 35000, 1, "Statue"),
-
-                // Pasture unlocks - mid to late game, key for income scaling
-                new SkillUpgrade("unlock_grass_pasture", "Grass Pasture", "+20% income bonus", SkillType.UnlockPasture, 5000, 1, "GrassPasture"),
-                new SkillUpgrade("unlock_water_pasture", "Water Pasture", "+30% income bonus", SkillType.UnlockPasture, 25000, 1, "WaterPasture"),
-                new SkillUpgrade("unlock_luxury_pasture", "Luxury Pasture", "+50% income bonus", SkillType.UnlockPasture, 150000, 1, "LuxuryPasture"),
+                // Decorations and Pastures are now unlocked through the Prestige system
 
                 // Final skill - requires finding all 30 animals + large gold investment
                 new SkillUpgrade("finish_game", "Finish the Game!", "Complete your adventure", SkillType.FinishGame, 1000000, 1)
@@ -151,14 +140,13 @@ namespace AdvancedCreatureDigseum
             return new List<string>(categories);
         }
 
-        // Get non-tiered skills (decorations, pastures, finish)
+        // Get non-tiered skills (finish game only - decorations/pastures moved to prestige)
         public static List<SkillUpgrade> GetNonTieredSkills()
         {
             List<SkillUpgrade> result = new List<SkillUpgrade>();
             foreach (var skill in Skills)
             {
-                if (skill.Type == SkillType.UnlockDecoration || skill.Type == SkillType.UnlockPasture ||
-                    skill.Type == SkillType.FinishGame)
+                if (skill.Type == SkillType.FinishGame)
                 {
                     result.Add(skill);
                 }
