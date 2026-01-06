@@ -43,10 +43,19 @@ namespace AdvancedCreatureDigseum
     public static class PrestigeDatabase
     {
         public static List<PrestigeUpgrade> Upgrades;
+        private static bool initialized = false;
 
         static PrestigeDatabase()
         {
             InitializeUpgrades();
+        }
+
+        public static void EnsureInitialized()
+        {
+            if (!initialized || Upgrades == null || Upgrades.Count == 0)
+            {
+                InitializeUpgrades();
+            }
         }
 
         static void InitializeUpgrades()
@@ -96,10 +105,12 @@ namespace AdvancedCreatureDigseum
                 new PrestigeUpgrade("prestige_unlock_water_pasture", "Permanent Water Pasture", "Water Pasture unlocked after prestige", PrestigeUpgradeType.UnlockPasture, 45, 0, "WaterPasture"),
                 new PrestigeUpgrade("prestige_unlock_luxury_pasture", "Permanent Luxury Pasture", "Luxury Pasture unlocked after prestige", PrestigeUpgradeType.UnlockPasture, 80, 0, "LuxuryPasture"),
             };
+            initialized = true;
         }
 
         public static PrestigeUpgrade GetUpgrade(string id)
         {
+            EnsureInitialized();
             return Upgrades.Find(u => u.Id == id);
         }
 
@@ -176,6 +187,8 @@ namespace AdvancedCreatureDigseum
         // Recalculate all bonuses from purchased upgrades (called on load)
         public static void RecalculateBonuses()
         {
+            EnsureInitialized();
+
             GameData.PrestigeIncomeBonus = 0f;
             GameData.PrestigeDigBonus = 0f;
             GameData.PrestigeStartBiome = 0;
@@ -194,6 +207,7 @@ namespace AdvancedCreatureDigseum
         // Get total starting gold bonus from prestige upgrades
         public static int GetStartingGoldBonus()
         {
+            EnsureInitialized();
             int bonus = 0;
             foreach (var upgradeId in GameData.PrestigeUpgrades)
             {
@@ -209,6 +223,7 @@ namespace AdvancedCreatureDigseum
         // Get total energy bonus percentage from prestige upgrades
         public static float GetEnergyBonusPercent()
         {
+            EnsureInitialized();
             float bonus = 0f;
             foreach (var upgradeId in GameData.PrestigeUpgrades)
             {
@@ -219,6 +234,13 @@ namespace AdvancedCreatureDigseum
                 }
             }
             return bonus;
+        }
+
+        // Get all upgrades (useful for iteration)
+        public static List<PrestigeUpgrade> GetAllUpgrades()
+        {
+            EnsureInitialized();
+            return Upgrades;
         }
     }
 }

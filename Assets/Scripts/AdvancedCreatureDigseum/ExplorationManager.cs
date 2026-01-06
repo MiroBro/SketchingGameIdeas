@@ -269,8 +269,8 @@ namespace AdvancedCreatureDigseum
         void AwardPrestigeCrystals(bool levelComplete)
         {
             // Prestige crystals based on biome level
-            // Biome 0-1: 0, Biome 2: 1, Biome 3: 2, etc.
-            int baseCrystals = Mathf.Max(0, currentBiomeIndex - 1);
+            // Biome 0: 0, Biome 1: 1, Biome 2: 2, Biome 3: 3, etc.
+            int baseCrystals = currentBiomeIndex;
 
             // Bonus for completing the level (finding all animals)
             if (levelComplete && baseCrystals > 0)

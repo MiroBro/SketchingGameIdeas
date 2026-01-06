@@ -22,10 +22,11 @@ namespace AdvancedCreatureDigseum
         void Start()
         {
             GameData.EnsureLoaded();
+            PrestigeDatabase.EnsureInitialized();
             PrestigeDatabase.RecalculateBonuses();
 
             mainCamera = Camera.main;
-            mainCamera.backgroundColor = new Color(0.15f, 0.1f, 0.2f);
+            mainCamera.backgroundColor = new Color(0.1f, 0.05f, 0.15f);
 
             CreateUI();
         }
@@ -235,6 +236,16 @@ namespace AdvancedCreatureDigseum
             }
             upgradeButtons.Clear();
 
+            // Get all upgrades
+            var allUpgrades = PrestigeDatabase.GetAllUpgrades();
+
+            // Check if upgrades exist
+            if (allUpgrades == null || allUpgrades.Count == 0)
+            {
+                Debug.LogError("PrestigeDatabase upgrades is null or empty!");
+                return;
+            }
+
             // Group upgrades by category
             string[] categories = { "Income", "Dig", "Biome", "Currency", "Gold", "Energy", "Decorations", "Pastures" };
             Dictionary<string, List<PrestigeUpgrade>> grouped = new Dictionary<string, List<PrestigeUpgrade>>();
@@ -244,7 +255,7 @@ namespace AdvancedCreatureDigseum
                 grouped[cat] = new List<PrestigeUpgrade>();
             }
 
-            foreach (var upgrade in PrestigeDatabase.Upgrades)
+            foreach (var upgrade in allUpgrades)
             {
                 string cat = "Income";
                 if (upgrade.Id.StartsWith("income")) cat = "Income";
