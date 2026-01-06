@@ -41,6 +41,9 @@ EditorBuildSettings:
   - enabled: 1
     path: Assets/Scenes/ACD_Skills.unity
     guid: 2b530b2289bfd9a4abd0f8b5c516317f
+  - enabled: 1
+    path: Assets/Scenes/ACD_Prestige.unity
+    guid: 8a4e7c3b2d1f6e5a9c8b7d4e3f2a1b0c
   m_configObjects:
     com.unity.input.settings.actions: {fileID: -944628639613478452, guid: 2bcd2660ca9b64942af0de543d8d7100, type: 3}
   m_UseUCBPForAssetBundles: 0

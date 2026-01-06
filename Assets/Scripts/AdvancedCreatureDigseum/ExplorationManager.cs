@@ -115,10 +115,11 @@ namespace AdvancedCreatureDigseum
             CreateNavButton(canvasObj.transform, new Vector2(-10, navY), "Fusion Lab", "ACD_FusionLab");
             CreateNavButton(canvasObj.transform, new Vector2(-10, navY - 40), "Zoo", "ACD_Zoo");
             CreateNavButton(canvasObj.transform, new Vector2(-10, navY - 80), "Skills", "ACD_Skills");
-            CreateNavButton(canvasObj.transform, new Vector2(-10, navY - 120), "Menu", "SampleScene");
+            CreateNavButton(canvasObj.transform, new Vector2(-10, navY - 120), "Prestige", "ACD_Prestige");
+            CreateNavButton(canvasObj.transform, new Vector2(-10, navY - 160), "Menu", "SampleScene");
 
             // Instructions
-            TextMeshProUGUI instructions = CreateText(canvasObj.transform, new Vector2(-10, navY - 170),
+            TextMeshProUGUI instructions = CreateText(canvasObj.transform, new Vector2(-10, navY - 210),
                 "Click to dig tiles\n" +
                 "Harder tiles need more\n" +
                 "clicks to reveal!\n\n" +
@@ -260,7 +261,37 @@ namespace AdvancedCreatureDigseum
 
         void ShowLevelComplete()
         {
+            // Award bonus prestige crystals for completing a level
+            AwardPrestigeCrystals(true);
             ShowRefreshPanelWithTitle("Level Complete!", new Color(0.3f, 1f, 0.5f));
+        }
+
+        void AwardPrestigeCrystals(bool levelComplete)
+        {
+            // Prestige crystals based on biome level
+            // Biome 0-1: 0, Biome 2: 1, Biome 3: 2, etc.
+            int baseCrystals = Mathf.Max(0, currentBiomeIndex - 1);
+
+            // Bonus for completing the level (finding all animals)
+            if (levelComplete && baseCrystals > 0)
+            {
+                baseCrystals += 1;
+            }
+
+            if (baseCrystals > 0)
+            {
+                // Apply prestige currency bonus
+                float bonusMultiplier = 1f + (GameData.PrestigeCurrencyBonus / 100f);
+                int finalCrystals = Mathf.RoundToInt(baseCrystals * bonusMultiplier);
+
+                GameData.PrestigePoints += finalCrystals;
+                GameData.SaveGame();
+
+                if (finalCrystals > 0)
+                {
+                    ShowFeedback($"+{finalCrystals} Prestige Crystals!", new Color(0.6f, 0.8f, 1f));
+                }
+            }
         }
 
         void ShowRefreshPanelWithTitle(string title, Color titleColor)

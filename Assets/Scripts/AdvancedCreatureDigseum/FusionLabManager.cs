@@ -103,10 +103,11 @@ namespace AdvancedCreatureDigseum
             CreateNavButton(canvasObj.transform, new Vector2(-10, navY), "Exploration", "ACD_Exploration");
             CreateNavButton(canvasObj.transform, new Vector2(-10, navY - 40), "Zoo", "ACD_Zoo");
             CreateNavButton(canvasObj.transform, new Vector2(-10, navY - 80), "Skills", "ACD_Skills");
-            CreateNavButton(canvasObj.transform, new Vector2(-10, navY - 120), "Menu", "SampleScene");
+            CreateNavButton(canvasObj.transform, new Vector2(-10, navY - 120), "Prestige", "ACD_Prestige");
+            CreateNavButton(canvasObj.transform, new Vector2(-10, navY - 160), "Menu", "SampleScene");
 
             // Instructions
-            TextMeshProUGUI instructions = CreateText(canvasObj.transform, new Vector2(-10, navY - 170),
+            TextMeshProUGUI instructions = CreateText(canvasObj.transform, new Vector2(-10, navY - 210),
                 "<color=#ff0>[***] = Fuseable!</color>\n" +
                 "Find 6 of each animal\n" +
                 "to unlock fusion.\n\n" +

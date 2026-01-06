@@ -44,6 +44,17 @@ namespace AdvancedCreatureDigseum
         // Game completion
         public static bool GameFinished = false;
 
+        // ===== PRESTIGE SYSTEM =====
+        public static int PrestigePoints = 0;           // Currency for prestige upgrades
+        public static int PrestigeCount = 0;            // How many times player has prestiged
+        public static HashSet<string> PrestigeUpgrades = new HashSet<string>(); // Purchased prestige upgrades
+
+        // Prestige bonuses (calculated from upgrades)
+        public static float PrestigeIncomeBonus = 0f;   // +X% income bonus
+        public static float PrestigeDigBonus = 0f;      // +X% dig power bonus
+        public static int PrestigeStartBiome = 0;       // Start with biomes unlocked up to this
+        public static float PrestigeCurrencyBonus = 0f; // +X% more prestige currency
+
         // Idle income tracking
         public static float IdleIncomeTimer = 0f;
         public static float IdleIncomeInterval = 2f;
@@ -141,6 +152,58 @@ namespace AdvancedCreatureDigseum
             SaveGame();
         }
 
+        // ===== PRESTIGE RESET =====
+        // Resets biomes and skills but keeps zoo, animals, hybrids, and prestige progress
+        public static void DoPrestige()
+        {
+            // Increment prestige count
+            PrestigeCount++;
+
+            // Reset unlocked biomes (but respect prestige start biome bonus)
+            UnlockedBiomes = new HashSet<int>() { 0 };
+            for (int i = 1; i <= PrestigeStartBiome; i++)
+            {
+                UnlockedBiomes.Add(i);
+            }
+
+            // Reset dig stats to base values
+            DigPower = 1;
+            DigRadius = 1;
+            MaxEnergy = 100;
+            EnergyRegen = 1f;
+            CurrentEnergy = 100f;
+
+            // Reset purchased skills (the normal skill tree)
+            SkillDatabase.PurchasedSkills.Clear();
+
+            // Reset unlocked decorations to base (prestige unlocks are permanent via PrestigeUpgrades)
+            UnlockedDecorations = new HashSet<string>() { "Fence", "Path" };
+            // Add any decorations unlocked via prestige
+            if (PrestigeUpgrades.Contains("prestige_unlock_bench")) UnlockedDecorations.Add("Bench");
+            if (PrestigeUpgrades.Contains("prestige_unlock_lamp")) UnlockedDecorations.Add("Lamp");
+            if (PrestigeUpgrades.Contains("prestige_unlock_tree")) UnlockedDecorations.Add("Tree");
+            if (PrestigeUpgrades.Contains("prestige_unlock_flowers")) UnlockedDecorations.Add("Flowers");
+            if (PrestigeUpgrades.Contains("prestige_unlock_fountain")) UnlockedDecorations.Add("Fountain");
+            if (PrestigeUpgrades.Contains("prestige_unlock_statue")) UnlockedDecorations.Add("Statue");
+
+            // Reset unlocked pastures to base
+            UnlockedPastures = new HashSet<string>() { "BasicPasture" };
+            // Add any pastures unlocked via prestige
+            if (PrestigeUpgrades.Contains("prestige_unlock_grass_pasture")) UnlockedPastures.Add("GrassPasture");
+            if (PrestigeUpgrades.Contains("prestige_unlock_water_pasture")) UnlockedPastures.Add("WaterPasture");
+            if (PrestigeUpgrades.Contains("prestige_unlock_luxury_pasture")) UnlockedPastures.Add("LuxuryPasture");
+
+            // Give some starting gold based on prestige count and upgrades
+            int startingGoldBonus = PrestigeDatabase.GetStartingGoldBonus();
+            Gold = 100 + (PrestigeCount * 50) + startingGoldBonus;
+
+            // NOT reset: FoundAnimals, HistoricalFinds, Hybrids, PlacedHybrids, PlacedDecorations
+            // NOT reset: PrestigePoints, PrestigeUpgrades, prestige bonuses
+
+            SaveGame();
+            Debug.Log($"[ACD] Prestige #{PrestigeCount} complete!");
+        }
+
         // ===== SAVE/LOAD SYSTEM =====
         public static void SaveGame()
         {
@@ -190,6 +253,15 @@ namespace AdvancedCreatureDigseum
 
             // Save last income timestamp
             PlayerPrefs.SetString("ACD_LastIncomeTimestamp", LastIncomeTimestamp.ToString());
+
+            // Save prestige data
+            PlayerPrefs.SetInt("ACD_PrestigePoints", PrestigePoints);
+            PlayerPrefs.SetInt("ACD_PrestigeCount", PrestigeCount);
+            PlayerPrefs.SetString("ACD_PrestigeUpgrades", StringSetToJson(PrestigeUpgrades));
+            PlayerPrefs.SetFloat("ACD_PrestigeIncomeBonus", PrestigeIncomeBonus);
+            PlayerPrefs.SetFloat("ACD_PrestigeDigBonus", PrestigeDigBonus);
+            PlayerPrefs.SetInt("ACD_PrestigeStartBiome", PrestigeStartBiome);
+            PlayerPrefs.SetFloat("ACD_PrestigeCurrencyBonus", PrestigeCurrencyBonus);
 
             PlayerPrefs.SetInt("ACD_HasSave", 1);
             PlayerPrefs.Save();
@@ -263,6 +335,16 @@ namespace AdvancedCreatureDigseum
             // Load last income timestamp
             string timestampStr = PlayerPrefs.GetString("ACD_LastIncomeTimestamp", "0");
             long.TryParse(timestampStr, out LastIncomeTimestamp);
+
+            // Load prestige data
+            PrestigePoints = PlayerPrefs.GetInt("ACD_PrestigePoints", 0);
+            PrestigeCount = PlayerPrefs.GetInt("ACD_PrestigeCount", 0);
+            string prestigeUpgradesJson = PlayerPrefs.GetString("ACD_PrestigeUpgrades", "");
+            PrestigeUpgrades = JsonToStringSet(prestigeUpgradesJson);
+            PrestigeIncomeBonus = PlayerPrefs.GetFloat("ACD_PrestigeIncomeBonus", 0f);
+            PrestigeDigBonus = PlayerPrefs.GetFloat("ACD_PrestigeDigBonus", 0f);
+            PrestigeStartBiome = PlayerPrefs.GetInt("ACD_PrestigeStartBiome", 0);
+            PrestigeCurrencyBonus = PlayerPrefs.GetFloat("ACD_PrestigeCurrencyBonus", 0f);
 
             Debug.Log("[ACD] Game loaded!");
         }

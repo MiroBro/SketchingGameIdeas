@@ -238,10 +238,11 @@ namespace AdvancedCreatureDigseum
             CreateNavButton(canvasObj.transform, new Vector2(-10, navY), "Exploration", "ACD_Exploration");
             CreateNavButton(canvasObj.transform, new Vector2(-10, navY - 40), "Fusion Lab", "ACD_FusionLab");
             CreateNavButton(canvasObj.transform, new Vector2(-10, navY - 80), "Skills", "ACD_Skills");
-            CreateNavButton(canvasObj.transform, new Vector2(-10, navY - 120), "Menu", "SampleScene");
+            CreateNavButton(canvasObj.transform, new Vector2(-10, navY - 120), "Prestige", "ACD_Prestige");
+            CreateNavButton(canvasObj.transform, new Vector2(-10, navY - 160), "Menu", "SampleScene");
 
             // Placement buttons section
-            TextMeshProUGUI placeLabel = CreateText(canvasObj.transform, new Vector2(-10, navY - 170), "PLACE:");
+            TextMeshProUGUI placeLabel = CreateText(canvasObj.transform, new Vector2(-10, navY - 210), "PLACE:");
             RectTransform placeLabelRect = placeLabel.GetComponent<RectTransform>();
             placeLabelRect.anchorMin = new Vector2(1, 1);
             placeLabelRect.anchorMax = new Vector2(1, 1);

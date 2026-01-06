@@ -80,7 +80,8 @@ namespace AdvancedCreatureDigseum
             CreateNavButton(canvasObj.transform, new Vector2(-10, navY), "Exploration", "ACD_Exploration");
             CreateNavButton(canvasObj.transform, new Vector2(-10, navY - 40), "Fusion Lab", "ACD_FusionLab");
             CreateNavButton(canvasObj.transform, new Vector2(-10, navY - 80), "Zoo", "ACD_Zoo");
-            CreateNavButton(canvasObj.transform, new Vector2(-10, navY - 120), "Menu", "SampleScene");
+            CreateNavButton(canvasObj.transform, new Vector2(-10, navY - 120), "Prestige", "ACD_Prestige");
+            CreateNavButton(canvasObj.transform, new Vector2(-10, navY - 160), "Menu", "SampleScene");
 
             // Reset button
             GameObject resetBtnObj = new GameObject("ResetBtn");
@@ -89,7 +90,7 @@ namespace AdvancedCreatureDigseum
             resetRect.anchorMin = new Vector2(1, 1);
             resetRect.anchorMax = new Vector2(1, 1);
             resetRect.pivot = new Vector2(1, 1);
-            resetRect.anchoredPosition = new Vector2(-10, navY - 170);
+            resetRect.anchoredPosition = new Vector2(-10, navY - 210);
             resetRect.sizeDelta = new Vector2(100, 32);
             resetRect.localScale = Vector3.one;
             Image resetImg = resetBtnObj.AddComponent<Image>();

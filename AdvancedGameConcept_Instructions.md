@@ -91,6 +91,10 @@ TMPro.TextMeshProUGUI:Rebuild (UnityEngine.UI.CanvasUpdate) (at ./Library/Packag
 UnityEngine.Canvas:SendWillRenderCanvases ()
 
 
+FURTHER REFINEMENT 12:
+- I want it so that WHEN you discover all animals/things in a level the level run immediately stops and offers you to rerun (as it's pointless to keep digging if there's nothing more there)
+- The early levels have more animals per in a level run than later. It should be reverse. So maybe on level 1 you should only have 3 animals, but on level 5 there should be 12 per level if that makes sense (to make it satisfying as you're getting more).
+
 I've thought more about the prestige system. And I know what I want now.
 PRESITGE SYSTEM:
 - I do want a prestige system that resets things, BUT I ONLY want the reset to reset the unlocked biomes/unlocked digging upgrades to 0/the beginning (so it doesn't touch ones zoo, and it doesn't touch ones animals one has collected/fused places etc). So when you prestige you reset which biomes you've unlocked and reset which digging skills/normal skills you've upgraded. AND you cannot upgrade prestige skill unless you prestige/unlock during that time then leave the prestige scene. The prestige system should be in a separate scene and have a separate currency, and should have permanent upgrades (unlock the decorations, make it so you get permanent earning percentage bonuses etc, maybe you start with biome 2 unlocked etc, unlock that you receive more prestige currency per leves, things like that. There are similair upgrades in Digseum which you can look up). One can unlock the currency by finding them in the biomes in a run. The earlier biomes have fewer prestige currency per level, so maybe biome 2 you can only find 1 per run. In biome 3 you can find 2, etc.
