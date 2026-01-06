@@ -957,10 +957,11 @@ namespace AdvancedCreatureDigseum
             foundAnimalObjects.Add(animalObj);
 
             // Award gold - scales with biome and rarity
-            // Later biomes give significantly more gold
-            int biomeBonus = animal.BiomeIndex * 10;  // 0g for biome 0, up to 90g for biome 9
-            int rarityBonus = animal.Rarity * 5;       // 5g for common, 15g for rare
-            int goldReward = 10 + biomeBonus + rarityBonus;
+            // Later biomes give SIGNIFICANTLY more gold (quadratic scaling)
+            int biomeLevel = animal.BiomeIndex + 1;  // 1-10
+            int biomeBonus = biomeLevel * biomeLevel * 8;  // 8, 32, 72, 128, 200, 288, 392, 512, 648, 800
+            int rarityBonus = animal.Rarity * biomeLevel * 5;  // Rarity also scales with biome
+            int goldReward = 5 + biomeBonus + rarityBonus;
             GameData.Gold += goldReward;
 
             // Track historical finds for hybrid value bonuses
